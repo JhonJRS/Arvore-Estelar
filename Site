@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Árvore de Talentos - CORREÇÃO CONEXÕES</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #121220; /* Tom ainda mais escuro e levemente azulado */
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #e8e8e8;
+    }
+
+    #starsCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    #uiContainer {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 10px; /* Reduzido */
+      width: 100%;
+    }
+
+    .header-content {
+      text-align: center;
+      margin-bottom: 8px; /* Reduzido */
+    }
+    .header-content h1 {
+      color: #f5f5f5;
+      font-size: 1.5em; /* Reduzido */
+      margin-bottom: 3px; /* Reduzido */
+    }
+
+    #pointsContainer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px; /* Reduzido */
+      background-color: rgba(0,0,0,0.2);
+      padding: 6px 12px; /* Reduzido */
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    #pointsContainer button {
+      background-color: #505090; /* Levemente ajustado */
+      color: white;
+      border: none;
+      width: 26px; /* Reduzido */
+      height: 26px; /* Reduzido */
+      border-radius: 50%;
+      font-size: 1em; /* Reduzido */
+      font-weight: bold;
+      cursor: pointer;
+      margin: 0 8px; /* Reduzido */
+      transition: background-color 0.2s;
+    }
+    #pointsContainer button:hover {
+      background-color: #7070b0;
+    }
+    #pointsContainer button:disabled {
+      background-color: #383838;
+      cursor: not-allowed;
+    }
+    #currentPointsDisplay {
+      font-size: 1.3em; /* Reduzido */
+      font-weight: bold;
+      color: #FFD700;
+      min-width: 25px;
+      text-align: center;
+    }
+     #maxPointsLabel {
+        font-size: 0.75em; /* Reduzido */
+        color: #b0b0b0;
+        margin-left: 4px;
+    }
+
+    #confirmButton {
+      padding: 8px 16px; /* Reduzido */
+      background: #006fe6;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 10px; /* Reduzido */
+      font-size: 0.9em; /* Reduzido */
+      transition: background-color 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    #confirmButton:hover {
+      background: #0059b3;
+    }
+     #confirmButton:disabled {
+      background-color: #505050;
+      cursor: not-allowed;
+    }
+
+    #dividerLine {
+        width: 90%;
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.15);
+        margin-bottom: 10px;
+        z-index: 1;
+    }
+
+    #skillTreeSvg {
+      width: 90vw;
+      height: calc(100vh - 160px);
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      background-color: rgba(25,25,45,0.2);
+      border-radius: 8px;
+    }
+    #skillTreeSvg:active {
+        cursor: grabbing;
+    }
+
+    #skillTreeSvg .skill-link {
+      stroke: #a060ff;
+      stroke-width: 2;
+      pointer-events: none;
+    }
+    #skillTreeSvg .skill-node {
+      fill: #404080;
+      stroke: #7070c0;
+      stroke-width: 1.5;
+      r: 8;
+      cursor: pointer;
+      transition: fill 0.15s, stroke 0.15s, r 0.15s, filter 0.15s, opacity 0.15s;
+    }
+    #skillTreeSvg .skill-node.unavailable {
+        opacity: 0.3;
+        cursor: default;
+        pointer-events: none;
+    }
+    #skillTreeSvg .skill-node.unavailable:hover {
+        filter: none;
+    }
+    #skillTreeSvg .skill-node:not(.unavailable):hover {
+        filter: brightness(1.4);
+    }
+    #skillTreeSvg .skill-node.node-center {
+      fill: #ffb300;
+      stroke: #ff7f00;
+      r: 11;
+      cursor: default;
+    }
+    #skillTreeSvg .skill-node.node-center:hover {
+        filter: brightness(1.1);
+    }
+    #skillTreeSvg .skill-node.tentative {
+      fill: #a0e0a0;
+      stroke: #40c040;
+      r: 10;
+    }
+    #skillTreeSvg .skill-node.confirmed {
+      fill: #00d0d0;
+      stroke: #00a0a0;
+      r: 10;
+    }
+     #skillTreeSvg .skill-node.cannot-afford {
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="starsCanvas"></canvas>
+
+  <div id="uiContainer">
+    <div class="header-content">
+      <h1>Árvore de Talentos</h1>
+    </div>
+
+    <div id="pointsContainer">
+      <button id="decreasePointsBtn" title="Diminuir pontos a gastar">-</button>
+      <span id="currentPointsDisplay">0</span>
+      <span id="maxPointsLabel">/ 50</span>
+      <button id="increasePointsBtn" title="Aumentar pontos a gastar">+</button>
+    </div>
+
+    <button id="confirmButton">Confirmar Talentos</button>
+    <div id="dividerLine"></div>
+    <svg id="skillTreeSvg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
+
+  <script>
+    console.log("SCRIPT: Iniciando.");
+
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log("DOM: Carregado.");
+
+      let maxTotalPoints = 50;
+      let currentSpendablePoints = 0;
+      let pointsSpentOnTree = 0;
+
+      const starsCanvas = document.getElementById('starsCanvas');
+      const ctx = starsCanvas.getContext('2d');
+      let cW = starsCanvas.width = window.innerWidth; let cH = starsCanvas.height = window.innerHeight;
+      window.addEventListener('resize', () => { cW = starsCanvas.width = window.innerWidth; cH = starsCanvas.height = window.innerHeight; });
+      const stars = Array.from({length: 150}, () => ({ x: Math.random()*cW,y: Math.random()*cH,s: Math.random()*1.5+0.5,v: Math.random()*0.3+0.1,o: Math.random()*0.5+0.2}));
+      function animS(){ ctx.clearRect(0,0,cW,cH); ctx.fillStyle='#121220'; ctx.fillRect(0,0,cW,cH); stars.forEach(s=>{ctx.globalAlpha=s.o;ctx.fillStyle='white';ctx.beginPath();ctx.arc(s.x,s.y,s.s,0,Math.PI*2);ctx.fill();s.y+=s.v;if(s.y>cH+s.s){s.y=0-s.s;s.x=Math.random()*cW;}}); ctx.globalAlpha=1.0; requestAnimationFrame(animS); }
+      animS();
+
+      const skillTreeSvg = document.getElementById('skillTreeSvg');
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      let vbX = 0, vbY = 0, vbW = 800, vbH = 800;
+      skillTreeSvg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+      const centerX = vbW/2, centerY = vbH/2;
+      const ringCfg = [1,6,12,18,24,30,9], radiusStep = 55;
+      const allNodes = [];
+      let nodeIdCnt = 0;
+      let nodesProcessedSoFar = 0; // Contador para o início do anel anterior
+
+      console.log("--- Generating Node Data ---");
+      ringCfg.forEach((nodesInRing, ringIdx) => {
+        const ringR = ringIdx === 0 ? 0 : radiusStep * (ringIdx + 0.4);
+        const createdInRing = [];
+        for (let i=0; i<nodesInRing; i++) {
+          const ang = (i/nodesInRing)*2*Math.PI - Math.PI/2;
+          const x = centerX+ringR*Math.cos(ang), y = centerY+ringR*Math.sin(ang);
+          const node = {id:nodeIdCnt++, x,y,ringIdx,el:null, connections: new Set()};
+          allNodes.push(node); createdInRing.push(node);
+        }
+
+        if(ringIdx > 0){
+          const numNodesInPreviousRing = ringCfg[ringIdx-1];
+          // O anel anterior começa em 'nodesProcessedSoFar' menos 'numNodesInPreviousRing'
+          const previousRingActualStartIndex = nodesProcessedSoFar - numNodesInPreviousRing;
+          
+          const previousRingNodes = allNodes.slice(previousRingActualStartIndex, previousRingActualStartIndex + numNodesInPreviousRing);
+          // console.log(`Ring ${ringIdx}: PrevRingStartIdx=${previousRingActualStartIndex}, NumInPrevRing=${numNodesInPreviousRing}, PrevNodes:`, previousRingNodes.map(n=>n.id));
+
+          createdInRing.forEach((childNode, childIdxInRing) => {
+            let parentNodeIndexInPreviousRing = Math.floor((childIdxInRing / nodesInRing) * numNodesInPreviousRing);
+            parentNodeIndexInPreviousRing = Math.max(0,Math.min(parentNodeIndexInPreviousRing, previousRingNodes.length-1));
+            const parentNode = previousRingNodes[parentNodeIndexInPreviousRing];
+
+            if(parentNode){
+              parentNode.connections.add(childNode.id);
+              childNode.connections.add(parentNode.id);
+              // console.log(`DEBUG Connection: Node ${parentNode.id} (from previous ring) <-> Node ${childNode.id} (current ring)`);
+              const l = document.createElementNS(SVG_NS,'line');
+              l.setAttribute('class','skill-link');
+              l.setAttribute('x1',parentNode.x.toFixed(1)); l.setAttribute('y1',parentNode.y.toFixed(1));
+              l.setAttribute('x2',childNode.x.toFixed(1)); l.setAttribute('y2',childNode.y.toFixed(1));
+              skillTreeSvg.appendChild(l);
+            } else {
+                console.warn(`WARN: Parent node not found for child ${childNode.id} in ring ${ringIdx}. PrevRingNodes count: ${previousRingNodes.length}, Calculated index: ${parentNodeIndexInPreviousRing}`);
+            }
+          });
+        }
+        nodesProcessedSoFar += nodesInRing; // Atualiza o contador de nós processados
+      });
+      console.log("--- Node Data Generation Complete ---");
+      // DEBUG: Verificar conexões do nó 1 (deve incluir 0)
+      // const node1 = allNodes.find(n => n.id === 1);
+      // if (node1) console.log("DEBUG: Node 1 connections:", Array.from(node1.connections));
+      // else console.log("DEBUG: Node 1 not found");
+
+
+      const tentative = new Set(), confirmed = new Set();
+      allNodes.forEach(node => {
+        const c = document.createElementNS(SVG_NS,'circle');
+        c.setAttribute('class','skill-node');
+        c.setAttribute('cx',node.x.toFixed(1)); c.setAttribute('cy',node.y.toFixed(1));
+        c.dataset.nodeId = node.id; node.el = c;
+        if(node.id === 0){
+          c.classList.add('node-center');
+          confirmed.add(0);
+          console.log("Node 0 (center) added to confirmed set. Confirmed set:", Array.from(confirmed));
+        } else {
+          c.addEventListener('click', (e) => { e.stopPropagation(); handleNodeClick(node); });
+        }
+        skillTreeSvg.appendChild(c);
+      });
+
+      const decPointsBtn = document.getElementById('decreasePointsBtn');
+      const incPointsBtn = document.getElementById('increasePointsBtn');
+      const pointsDisplay = document.getElementById('currentPointsDisplay');
+      const maxPointsLabel = document.getElementById('maxPointsLabel');
+      const confirmBtn = document.getElementById('confirmButton');
+
+      function isNodeUnlockable(nodeId) {
+        // console.log(`isNodeUnlockable CALLED FOR NODE ${nodeId}`);
+        if (nodeId === 0) { /*console.log(` -> Node ${nodeId} is center, returning true.`);*/ return true; }
+        if (confirmed.has(nodeId)) { /*console.log(` -> Node ${nodeId} is already in CONFIRMED, returning true.`);*/ return true; }
+        if (tentative.has(nodeId)) { /*console.log(` -> Node ${nodeId} is already in TENTATIVE, returning true.`);*/ return true; }
+
+        const node = allNodes.find(n => n.id === nodeId);
+        if (!node) { console.error(` -> Node ${nodeId} NOT FOUND in allNodes!`); return false; }
+        // console.log(` -> Node ${nodeId} connections: ${Array.from(node.connections)}. Checking against CONFIRMED: ${Array.from(confirmed)}`);
+        for (const connectedNodeId of node.connections) {
+          // console.log(`    -> Checking connection: ${connectedNodeId}. Is it in CONFIRMED? ${confirmed.has(connectedNodeId)}`);
+          if (confirmed.has(connectedNodeId)) {
+            // console.log(`    -> YES! Node ${nodeId} IS UNLOCKABLE via confirmed node ${connectedNodeId}.`);
+            return true;
+          }
+        }
+        // console.log(` -> Node ${nodeId} IS NOT UNLOCKABLE (no confirmed connections found).`);
+        return false;
+      }
+
+      function updateNodeAvailability() {
+        allNodes.forEach(node => {
+          if (node.id === 0) return;
+          const unlockable = isNodeUnlockable(node.id);
+          
+          if (unlockable) {
+            node.el.classList.remove('unavailable');
+            if (pointsSpentOnTree + tentative.size >= maxTotalPoints && !tentative.has(node.id) && !confirmed.has(node.id)) {
+                 node.el.classList.add('cannot-afford');
+            } else {
+                 node.el.classList.remove('cannot-afford');
+            }
+          } else {
+            node.el.classList.add('unavailable');
+            node.el.classList.remove('cannot-afford');
+          }
+        });
+      }
+
+      function updatePointsUI() {
+        // console.log(`--- updatePointsUI ---`);
+        // console.log(`  Spendable: ${currentSpendablePoints}, MaxTotal: ${maxTotalPoints}, Spent: ${pointsSpentOnTree}, Tentative: ${tentative.size}`);
+        pointsDisplay.textContent = currentSpendablePoints;
+        maxPointsLabel.textContent = `/ ${maxTotalPoints}`;
+        decPointsBtn.disabled = currentSpendablePoints <= 0;
+        incPointsBtn.disabled = currentSpendablePoints >= maxTotalPoints;
+        
+        let canAffordToConfirmTentatives = currentSpendablePoints >= tentative.size;
+        confirmBtn.disabled = tentative.size === 0 || !canAffordToConfirmTentatives;
+        // console.log(`  ConfirmBtn disabled: ${confirmBtn.disabled} (Tentatives: ${tentative.size}, CanAffordConfirm: ${canAffordToConfirmTentatives})`);
+        // console.log(`--- calling updateNodeAvailability from updatePointsUI ---`);
+        updateNodeAvailability();
+        // console.log(`--- updatePointsUI END ---`);
+      }
+
+      decPointsBtn.addEventListener('click', () => { if (currentSpendablePoints > 0) { currentSpendablePoints--; updatePointsUI(); }});
+      incPointsBtn.addEventListener('click', () => { if (currentSpendablePoints < maxTotalPoints) { currentSpendablePoints++; updatePointsUI(); }});
+
+      function handleNodeClick(node) {
+        // console.log(`--- handleNodeClick for NODE ${node.id} ---`);
+        // console.log(`  Initial state - Confirmed: ${confirmed.has(node.id)}, Tentative: ${tentative.has(node.id)}`);
+        // console.log(`  Current points - Spendable: ${currentSpendablePoints}, MaxTotal: ${maxTotalPoints}, Spent: ${pointsSpentOnTree}, TentativeSetSize: ${tentative.size}`);
+
+        if (node.id === 0) { /*console.log("  Clicked on center node, no action.");*/ return; }
+
+        let unlockable = isNodeUnlockable(node.id);
+        // console.log(`  Result of isNodeUnlockable(${node.id}) for click action: ${unlockable}`);
+
+        if (confirmed.has(node.id)) {
+          confirmed.delete(node.id); node.el.classList.remove('confirmed');
+          pointsSpentOnTree--; maxTotalPoints++; currentSpendablePoints++;
+          // console.log(`  Node ${node.id} UNCONFIRMED.`);
+        } else if (tentative.has(node.id)) {
+          tentative.delete(node.id); node.el.classList.remove('tentative');
+          // console.log(`  Node ${node.id} UNTENTATIVE.`);
+        } else { 
+          // console.log(`  Attempting to set Node ${node.id} to TENTATIVE.`);
+          if (unlockable) { 
+            if (pointsSpentOnTree + tentative.size < maxTotalPoints) {
+               tentative.add(node.id); node.el.classList.add('tentative');
+               // console.log(`  Node ${node.id} SUCCESSFULLY set to TENTATIVE.`);
+            } else {
+              // console.log(`  Node ${node.id} REJECTED for tentative (maxTotalPoints limit).`);
+            }
+          } else { 
+            // console.log(`  Node ${node.id} REJECTED for tentative (NOT UNLOCKABLE).`);
+          }
+        }
+        // console.log(`--- calling updatePointsUI from handleNodeClick for NODE ${node.id} ---`);
+        updatePointsUI();
+        // console.log(`--- handleNodeClick for NODE ${node.id} END ---`);
+      }
+      
+      confirmBtn.addEventListener('click', () => {
+        // console.log(`--- confirmBtn CLICK ---`);
+        // console.log(`  Spendable: ${currentSpendablePoints}, Tentative.size: ${tentative.size}`);
+        if (currentSpendablePoints >= tentative.size && tentative.size > 0) {
+          let pointsBeingConfirmed = 0;
+          const nodesToConfirmNow = Array.from(tentative); 
+          
+          nodesToConfirmNow.forEach(id => {
+            if (currentSpendablePoints > pointsBeingConfirmed) { 
+                confirmed.add(id);
+                const n = allNodes.find(nd => nd.id === id);
+                if (n && n.el) { n.el.classList.remove('tentative'); n.el.classList.add('confirmed'); }
+                pointsBeingConfirmed++;
+            }
+          });
+
+          currentSpendablePoints -= pointsBeingConfirmed;
+          pointsSpentOnTree += pointsBeingConfirmed;
+          maxTotalPoints -= pointsBeingConfirmed; 
+          
+          // console.log(`  CONFIRMED ${pointsBeingConfirmed} nodes. Spent: ${pointsSpentOnTree}, Spendable: ${currentSpendablePoints}, MaxTotal: ${maxTotalPoints}`);
+          tentative.clear(); 
+          updatePointsUI();
+        } else {
+            // console.log("  CONFIRM_BTN_REJECT: Not enough spendable points or no tentative nodes.");
+        }
+        // console.log(`--- confirmBtn CLICK END ---`);
+      });
+      
+      // console.log("--- Initial updatePointsUI call ---");
+      updatePointsUI();
+
+      let isPanning = false; let lastPanX, lastPanY;
+      skillTreeSvg.addEventListener('wheel', e => { e.preventDefault(); const zI=0.1,sD=e.deltaY<0?1:-1;const p=svgPt(e,skillTreeSvg,vbX,vbY,vbW,vbH);const nW=vbW*(1-sD*zI),nH=vbH*(1-sD*zI);if(nW<50||nW>10000)return;vbX=p.x-(p.x-vbX)*(nW/vbW);vbY=p.y-(p.y-vbY)*(nH/vbH);vbW=nW;vbH=nH;skillTreeSvg.setAttribute('viewBox',`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`); });
+      skillTreeSvg.addEventListener('mousedown', e => { if(e.target===skillTreeSvg){isPanning=true;const cP=getClientCoords(e);lastPanX=cP.x;lastPanY=cP.y;skillTreeSvg.style.cursor='grabbing';}});
+      document.addEventListener('mousemove', e => { if(!isPanning)return;const cP=getClientCoords(e);const dX=cP.x-lastPanX,dY=cP.y-lastPanY;const scale=vbW/skillTreeSvg.getBoundingClientRect().width;vbX-=dX*scale;vbY-=dY*scale;skillTreeSvg.setAttribute('viewBox',`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`);lastPanX=cP.x;lastPanY=cP.y;});
+      document.addEventListener('mouseup', () => { if(isPanning){isPanning=false;skillTreeSvg.style.cursor='grab';}});
+      function svgPt(evt,svg,cX,cY,cW,cH){const pt=svg.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;const r=svg.getBoundingClientRect();return{x:(pt.x-r.left)*(cW/r.width)+cX,y:(pt.y-r.top)*(cH/r.height)+cY};}
+      function getClientCoords(e){return e.touches?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY};}
+
+      // console.log("--- Initial updateNodeAvailability call ---");
+      updateNodeAvailability();
+      console.log("SCRIPT: Finalizado.");
+    });
+  </script>
+</body>
+</html>
