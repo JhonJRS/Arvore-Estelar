@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Árvore de Talentos Cósmicos - Todas Constelações Artesanais!</title>
+  <title>Árvore de Talentos Cósmicos - Teia Fractal Completa!</title>
   <style>
-    /* Estilos CSS permanecem os mesmos da versão anterior */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100vw;
@@ -42,6 +41,8 @@
     #skillTreeSvg .skill-node.type-giant { fill: #d0b050; stroke: #f0d070; r: 13; }
     #skillTreeSvg .skill-node.type-nexus { fill: #c0c0c0; stroke: #ffffff; r: 8; }
     #skillTreeSvg .skill-node.type-cluster { fill: #a0a0e0; stroke: #c0c0ff; r: 6; }
+    #skillTreeSvg .skill-node.type-leaf { fill: #60a060; stroke: #80c080; r: 5; }
+    #skillTreeSvg .skill-node.type-web_nexus { fill: #888888; stroke: #aaaaaa; r: 4; }
 
 
     #skillTreeSvg .skill-node.unavailable { opacity: 0.25; cursor: default; pointer-events: none; }
@@ -49,15 +50,8 @@
     #skillTreeSvg .skill-node:not(.unavailable):hover { filter: brightness(1.5); }
 
     #skillTreeSvg .skill-node.tentative { stroke: #30ff30; stroke-width: 2.5px; }
-    #skillTreeSvg .skill-node.confirmed {
-      fill: #28a745;
-      stroke: #1e7e34;
-      filter: drop-shadow(0 0 4px #28a745);
-    }
-    #skillTreeSvg .skill-node.node-start {
-        fill: #FFD700; stroke: #FFA500; r:16;
-        filter: drop-shadow(0 0 8px #FFD700);
-    }
+    #skillTreeSvg .skill-node.confirmed { fill: #28a745; stroke: #1e7e34; filter: drop-shadow(0 0 4px #28a745); }
+    #skillTreeSvg .skill-node.node-start { fill: #FFD700; stroke: #FFA500; r:16; filter: drop-shadow(0 0 8px #FFD700); }
     #skillTreeSvg .skill-node.cannot-afford { opacity: 0.4 !important; }
     #skillTreeSvg .dust-star { pointer-events: none; }
   </style>
@@ -87,370 +81,338 @@
       const ctx = starsCanvas.getContext('2d');
       let cW = starsCanvas.width = window.innerWidth; let cH = starsCanvas.height = window.innerHeight;
       window.addEventListener('resize', () => { cW = starsCanvas.width = window.innerWidth; cH = starsCanvas.height = window.innerHeight; });
-      const starsBG = Array.from({length: 250}, () => ({ x: Math.random()*cW,y: Math.random()*cH,s: Math.random()*1.2+0.3,v: Math.random()*0.25+0.05,o: Math.random()*0.6+0.1}));
+      const starsBG = Array.from({length: 200}, () => ({ x: Math.random()*cW,y: Math.random()*cH,s: Math.random()*1.0+0.2,v: Math.random()*0.20+0.03,o: Math.random()*0.4+0.05}));
       function animS(){ ctx.clearRect(0,0,cW,cH); ctx.fillStyle='#0c0c14'; ctx.fillRect(0,0,cW,cH); starsBG.forEach(s=>{ctx.globalAlpha=s.o;ctx.fillStyle='white';ctx.beginPath();ctx.arc(s.x,s.y,s.s,0,Math.PI*2);ctx.fill();s.y+=s.v;if(s.y>cH+s.s){s.y=0-s.s;s.x=Math.random()*cW;}}); ctx.globalAlpha=1.0; requestAnimationFrame(animS); }
       animS();
 
       const skillTreeSvg = document.getElementById('skillTreeSvg');
       const SVG_NS = "http://www.w3.org/2000/svg";
-      let vbX = 0, vbY = 0, vbW = 3200, vbH = 3200; // Aumentei um pouco o ViewBox
+      // ViewBox inicial: x, y, largura, altura. Ajuste para centralizar a origem (0,0) do viewBox no centro da tela SVG
+      const svgRect = skillTreeSvg.getBoundingClientRect();
+      let vbW = 4500, vbH = 4500;
+      let vbX = -vbW / 2, vbY = -vbH / 2; // Centraliza a origem do viewBox
       skillTreeSvg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
+
 
       const allNodes = [], nodeElements = new Map();
       const nodeIdToInternalIdMap = new Map();
       let globalNodeIdCounter = 0;
+      const linksToDraw = [];
 
-      // --- DEFINIÇÕES DE TODAS AS 20 CONSTELAÇÕES ARTESANAIS ---
-      const handcraftedConstellations = {
-        // As 5 originais (com pequenos ajustes se necessário)
-        "Gema do Poder": {
-            name: "Gema do Poder", category: "Item",
-            stars: [ { id: "GP_T", relX: 50, relY: 10, type: "major" }, { id: "GP_E", relX: 10, relY: 50, type: "minor" }, { id: "GP_D", relX: 90, relY: 50, type: "minor" }, { id: "GP_B", relX: 50, relY: 90, type: "major" }, { id: "GP_N", relX: 50, relY: 50, type: "giant" } ],
-            connections: [ [0,1], [0,2], [1,3], [2,3], [4,0], [4,1], [4,2], [4,3] ], entryPointId: "GP_B", exitPointId: "GP_T"
-        },
-        "Escudo Guardião": {
-            name: "Escudo Guardião", category: "Item",
-            stars: [ { id: "EG_T", relX: 50, relY: 10, type: "major" }, { id: "EG_OE", relX: 20, relY: 35, type: "minor" }, { id: "EG_OD", relX: 80, relY: 35, type: "minor" }, { id: "EG_CE", relX: 20, relY: 85, type: "minor" }, { id: "EG_CD", relX: 80, relY: 85, type: "minor" }, { id: "EG_P", relX: 50, relY: 110, type: "major" }, { id: "EG_C", relX: 50, relY: 60, type: "giant" } ],
-            connections: [ [0,1], [0,2], [1,3], [2,4], [3,5], [4,5], [6,0], [6,5], [6,1],[6,2],[6,3],[6,4]], entryPointId: "EG_P", exitPointId: "EG_T"
-        },
-        "Cajado Rúnico": {
-            name: "Cajado Rúnico", category: "Item",
-            stars: [ { id: "CR_B", relX: 10, relY: 130, type: "minor" }, { id: "CR_H1", relX: 10, relY: 100, type: "minor" }, { id: "CR_H2", relX: 10, relY: 70, type: "major" }, { id: "CR_H3", relX: 10, relY: 40, type: "minor" }, { id: "CR_T", relX: 10, relY: 10, type: "giant" } ],
-            connections: [ [0,1], [1,2], [2,3], [3,4] ], entryPointId: "CR_B", exitPointId: "CR_T"
-        },
-        "Diadema Estelar": {
-            name: "Diadema Estelar", category: "Item", // Mudei para item
-            stars: [ { id: "DE_PE", relX: 10, relY: 40, type: "minor" }, { id: "DE_BE", relX: 30, relY: 70, type: "major" }, { id: "DE_CB", relX: 60, relY: 60, type: "minor"}, { id: "DE_CT", relX: 60, relY: 10, type: "giant" }, { id: "DE_BD", relX: 90, relY: 70, type: "major" }, { id: "DE_PD", relX: 110, relY: 40, type: "minor" } ],
-            connections: [ [0,1], [1,2], [2,3], [2,4], [4,5], [1,3], [4,3] ], entryPointId: "DE_CB", exitPointId: "DE_CT"
-        },
-        "Símbolo Arcano": {
-            name: "Símbolo Arcano", category: "Magic",
-            stars: [ { id: "SA_B", relX: 40, relY: 90, type: "major" }, { id: "SA_H", relX: 40, relY: 60, type: "minor" }, { id: "SA_CB", relX: 40, relY: 30, type: "giant" }, { id: "SA_PE", relX: 10, relY: 10, type: "major" }, { id: "SA_PC", relX: 40, relY: 0, type: "major" }, { id: "SA_PD", relX: 70, relY: 10, type: "major" } ],
-            connections: [ [0,1], [1,2], [2,3], [2,4], [2,5] ], entryPointId: "SA_B", exitPointId: "SA_PC"
-        },
-
-        // Novas 15 Constelações Artesanais
-        "Arco Longo Celestial": {
-            name: "Arco Longo Celestial", category: "Item",
-            stars: [ {id:"ALC_PontaS", relX:50, relY:10, type:"minor"}, {id:"ALC_CurvaS", relX:80, relY:30, type:"major"}, {id:"ALC_PunhoC", relX:90, relY:70, type:"giant"}, {id:"ALC_CurvaI", relX:80, relY:110, type:"major"}, {id:"ALC_PontaI", relX:50, relY:130, type:"minor"}, {id:"ALC_Corda", relX:20, relY:70, type:"minor"} ],
-            connections: [ [0,1], [1,2], [2,3], [3,4], [0,5], [4,5], [2,5] ], entryPointId: "ALC_PontaI", exitPointId: "ALC_PontaS"
-        },
-        "Poção Cósmica": {
-            name: "Poção Cósmica", category: "Item",
-            stars: [ {id:"PC_BaseE", relX:30, relY:100, type:"minor"}, {id:"PC_BaseD", relX:70, relY:100, type:"minor"}, {id:"PC_CorpoE", relX:20, relY:70, type:"major"}, {id:"PC_CorpoD", relX:80, relY:70, type:"major"}, {id:"PC_GargaloE", relX:40, relY:40, type:"minor"}, {id:"PC_GargaloD", relX:60, relY:40, type:"minor"}, {id:"PC_Boca", relX:50, relY:10, type:"giant"}, {id:"PC_Liquido", relX:50, relY:80, type:"major"} ],
-            connections: [ [0,1],[0,2],[1,3],[2,3],[2,4],[3,5],[4,5],[4,6],[5,6],[7,2],[7,3] ], entryPointId: "PC_BaseE", exitPointId: "PC_Boca"
-        },
-        "Chave dos Reinos": {
-            name: "Chave dos Reinos", category: "Item",
-            stars: [ {id:"CK_AnelT", relX:50, relY:10, type:"major"}, {id:"CK_AnelE", relX:20, relY:30, type:"minor"}, {id:"CK_AnelD", relX:80, relY:30, type:"minor"}, {id:"CK_AnelB", relX:50, relY:50, type:"major"}, {id:"CK_Haste", relX:50, relY:90, type:"minor"}, {id:"CK_Dente1", relX:30, relY:120, type:"minor"}, {id:"CK_Dente2", relX:70, relY:120, type:"minor"} ],
-            connections: [ [0,1],[0,2],[1,3],[2,3],[3,4],[4,5],[4,6] ], entryPointId: "CK_Dente1", exitPointId: "CK_AnelT"
-        },
-        "Martelo Astral": {
-            name: "Martelo Astral", category: "Item",
-            stars: [ {id:"MA_Cabo", relX:50, relY:130, type:"major"}, {id:"MA_BaseHaste", relX:50, relY:90, type:"minor"}, {id:"MA_TopoHaste", relX:50, relY:50, type:"major"}, {id:"MA_CabecaSE", relX:20, relY:20, type:"giant"}, {id:"MA_CabecaSD", relX:80, relY:20, type:"giant"}, {id:"MA_CabecaIE", relX:20, relY:50, type:"minor"}, {id:"MA_CabecaID", relX:80, relY:50, type:"minor"} ],
-            connections: [ [0,1],[1,2],[2,3],[2,4],[2,5],[2,6],[3,5],[4,6] ], entryPointId: "MA_Cabo", exitPointId: "MA_CabecaSE" // ou SD
-        },
-        "Tomo Infinito": { // Livro aberto
-            name: "Tomo Infinito", category: "Item",
-            stars: [ {id:"TI_PagES", relX:20, relY:20, type:"major"}, {id:"TI_PagEI", relX:20, relY:100, type:"major"}, {id:"TI_LombadaC", relX:50, relY:60, type:"giant"}, {id:"TI_PagDS", relX:80, relY:20, type:"major"}, {id:"TI_PagDI", relX:80, relY:100, type:"major"} ],
-            connections: [ [0,1],[0,2],[1,2],[2,3],[2,4],[3,4] ], entryPointId: "TI_PagEI", exitPointId: "TI_PagDS"
-        },
-        "Amuleto Guardião": {
-            name: "Amuleto Guardião", category: "Item",
-            stars: [ {id:"AG_Topo", relX:50, relY:10, type:"minor"}, {id:"AG_EloE", relX:30, relY:30, type:"minor"}, {id:"AG_EloD", relX:70, relY:30, type:"minor"}, {id:"AG_CorpoSE", relX:20, relY:60, type:"major"}, {id:"AG_CorpoSD", relX:80, relY:60, type:"major"}, {id:"AG_CorpoIE", relX:30, relY:100, type:"major"}, {id:"AG_CorpoID", relX:70, relY:100, type:"major"}, {id:"AG_Joia", relX:50, relY:70, type: "giant"} ],
-            connections: [ [0,1],[0,2],[1,3],[2,4],[3,5],[4,6],[5,6],[7,3],[7,4],[7,5],[7,6] ], entryPointId: "AG_CorpoIE", exitPointId: "AG_Topo"
-        },
-        "Berrante da Bravura": {
-            name: "Berrante da Bravura", category: "Item",
-            stars: [ {id:"BB_Bocal", relX:10, relY:60, type:"major"}, {id:"BB_Curva1", relX:30, relY:70, type:"minor"}, {id:"BB_Curva2", relX:60, relY:60, type:"major"}, {id:"BB_Curva3", relX:80, relY:40, type:"minor"}, {id:"BB_Abertura", relX:100, relY:20, type:"giant"} ],
-            connections: [ [0,1],[1,2],[2,3],[3,4] ], entryPointId: "BB_Bocal", exitPointId: "BB_Abertura"
-        },
-        "Olho Onisciente": {
-            name: "Olho Onisciente", category: "Magic",
-            stars: [ {id:"OO_Pupila", relX:50, relY:50, type:"giant"}, {id:"OO_IrisN", relX:50, relY:20, type:"major"}, {id:"OO_IrisS", relX:50, relY:80, type:"major"}, {id:"OO_IrisL", relX:20, relY:50, type:"major"}, {id:"OO_IrisO", relX:80, relY:50, type:"major"}, {id:"OO_PalpSup", relX:50, relY:0, type:"minor"}, {id:"OO_PalpInf", relX:50, relY:100, type:"minor"} ],
-            connections: [ [0,1],[0,2],[0,3],[0,4],[1,3],[1,4],[2,3],[2,4],[1,5],[2,6],[3,5],[3,6],[4,5],[4,6] ], entryPointId: "OO_PalpInf", exitPointId: "OO_PalpSup"
-        },
-        "Mão Espectral": {
-            name: "Mão Espectral", category: "Magic",
-            stars: [ {id:"ME_Pulso", relX:50, relY:120, type:"major"}, {id:"ME_Palma", relX:50, relY:90, type:"giant"}, {id:"ME_Dedo1", relX:20, relY:60, type:"minor"}, {id:"ME_Dedo2", relX:40, relY:40, type:"minor"}, {id:"ME_Dedo3", relX:60, relY:40, type:"minor"}, {id:"ME_Dedo4", relX:80, relY:60, type:"minor"}, {id:"ME_Polegar", relX:10, relY:90, type:"minor"} ],
-            connections: [ [0,1],[1,2],[1,3],[1,4],[1,5],[1,6] ], entryPointId: "ME_Pulso", exitPointId: "ME_Dedo3"
-        },
-        "Vórtice Arcano": { // Espiral simples
-            name: "Vórtice Arcano", category: "Magic",
-            stars: [ {id:"VA_Ext", relX:10, relY:50, type:"major"}, {id:"VA_C1", relX:30, relY:20, type:"minor"}, {id:"VA_C2", relX:70, relY:30, type:"major"}, {id:"VA_C3", relX:80, relY:70, type:"minor"}, {id:"VA_C4", relX:50, relY:80, type:"major"}, {id:"VA_Nucleo", relX:45, relY:50, type:"giant"} ],
-            connections: [ [0,1],[1,2],[2,3],[3,4],[4,5],[5,0] ], entryPointId: "VA_Ext", exitPointId: "VA_Nucleo"
-        },
-        "Pena Alada": {
-            name: "Pena Alada", category: "Item", // Ou Magic
-            stars: [ {id:"PA_Base", relX:20, relY:100, type:"minor"}, {id:"PA_HasteC", relX:30, relY:60, type:"major"}, {id:"PA_Ponta", relX:40, relY:10, type:"minor"}, {id:"PA_AsaInt", relX:60, relY:50, type:"giant"}, {id:"PA_AsaExt", relX:90, relY:40, type:"major"} ],
-            connections: [ [0,1],[1,2],[1,3],[3,4] ], entryPointId: "PA_Base", exitPointId: "PA_Ponta"
-        },
-        "Coroa Imperial": {
-            name: "Coroa Imperial", category: "Item",
-            stars: [ {id:"CI_BaseE", relX:10, relY:80, type:"major"}, {id:"CI_BaseD", relX:90, relY:80, type:"major"}, {id:"CI_PontaE", relX:20, relY:20, type:"minor"}, {id:"CI_PontaC", relX:50, relY:0, type:"giant"}, {id:"CI_PontaD", relX:80, relY:20, type:"minor"}, {id:"CI_JoiaE", relX:35, relY:50, type:"major"}, {id:"CI_JoiaD", relX:65, relY:50, type:"major"} ],
-            connections: [ [0,1],[0,2],[0,5],[1,4],[1,6],[2,3],[3,4],[2,5],[4,6],[5,3],[6,3] ], entryPointId: "CI_BaseE", exitPointId: "CI_PontaC"
-        },
-        "Serpente Estelar": {
-            name: "Serpente Estelar", category: "Creature",
-            stars: [ {id:"SE_Cauda", relX:10, relY:100, type:"minor"}, {id:"SE_C1", relX:30, relY:80, type:"major"}, {id:"SE_C2", relX:60, relY:100, type:"minor"}, {id:"SE_C3", relX:80, relY:70, type:"major"}, {id:"SE_Pescoco", relX:60, relY:40, type:"minor"}, {id:"SE_Cabeca", relX:50, relY:10, type:"giant"} ],
-            connections: [ [0,1],[1,2],[2,3],[3,4],[4,5] ], entryPointId: "SE_Cauda", exitPointId: "SE_Cabeca"
-        },
-        "Garra Dracônica": {
-            name: "Garra Dracônica", category: "Creature",
-            stars: [ {id:"GD_Pulso", relX:50, relY:100, type:"major"}, {id:"GD_Palma", relX:50, relY:70, type:"giant"}, {id:"GD_DedoE", relX:20, relY:30, type:"major"}, {id:"GD_DedoC", relX:50, relY:10, type:"major"}, {id:"GD_DedoD", relX:80, relY:30, type:"major"} ],
-            connections: [ [0,1],[1,2],[1,3],[1,4] ], entryPointId: "GD_Pulso", exitPointId: "GD_DedoC"
-        },
-        "Asas da Fênix": {
-            name: "Asas da Fênix", category: "Creature",
-            stars: [ {id:"AF_Centro", relX:50, relY:70, type:"giant"}, {id:"AF_AsaESup", relX:20, relY:30, type:"major"}, {id:"AF_AsaEInf", relX:10, relY:80, type:"minor"}, {id:"AF_AsaDSup", relX:80, relY:30, type:"major"}, {id:"AF_AsaDInf", relX:90, relY:80, type:"minor"} ],
-            connections: [ [0,1],[0,2],[0,3],[0,4],[1,2],[3,4] ], entryPointId: "AF_Centro", exitPointId: "AF_AsaESup" // Ou DSup
-        }
+      // --- DEFINIÇÕES COMPLETAS DAS CONSTELAÇÕES ARTESANAIS ---
+      const layer1Constellations = {
+        "Gema do Poder": { name: "Gema do Poder", category: "ItemL1", stars: [ { id: "GP_T", relX: 50, relY: 10, type: "major" }, { id: "GP_E", relX: 10, relY: 50, type: "minor" }, { id: "GP_D", relX: 90, relY: 50, type: "minor" }, { id: "GP_B", relX: 50, relY: 90, type: "major" }, { id: "GP_N", relX: 50, relY: 50, type: "giant" } ], connections: [ [0,1], [0,2], [1,3], [2,3], [4,0], [4,1], [4,2], [4,3] ], entryPointId: "GP_B", exitPointId: "GP_N" },
+        "Escudo Guardião": { name: "Escudo Guardião", category: "ItemL1", stars: [ { id: "EG_T", relX: 50, relY: 10, type: "major" }, { id: "EG_OE", relX: 20, relY: 35, type: "minor" }, { id: "EG_OD", relX: 80, relY: 35, type: "minor" }, { id: "EG_CE", relX: 20, relY: 85, type: "minor" }, { id: "EG_CD", relX: 80, relY: 85, type: "minor" }, { id: "EG_P", relX: 50, relY: 110, type: "major" }, { id: "EG_C", relX: 50, relY: 60, type: "giant" } ], connections: [ [0,1], [0,2], [1,3], [2,4], [3,5], [4,5], [6,0], [6,5], [6,1],[6,2],[6,3],[6,4]], entryPointId: "EG_P", exitPointId: "EG_C" },
+        "Cajado Rúnico": { name: "Cajado Rúnico", category: "ItemL1", stars: [ { id: "CR_B", relX: 10, relY: 130, type: "minor" }, { id: "CR_H1", relX: 10, relY: 100, type: "minor" }, { id: "CR_H2", relX: 10, relY: 70, type: "major" }, { id: "CR_H3", relX: 10, relY: 40, type: "minor" }, { id: "CR_T", relX: 10, relY: 10, type: "giant" } ], connections: [ [0,1], [1,2], [2,3], [3,4] ], entryPointId: "CR_B", exitPointId: "CR_T" },
+        "Diadema Estelar": { name: "Diadema Estelar", category: "ItemL1", stars: [ { id: "DE_PE", relX: 10, relY: 40, type: "minor" }, { id: "DE_BE", relX: 30, relY: 70, type: "major" }, { id: "DE_CB", relX: 60, relY: 60, type: "minor"}, { id: "DE_CT", relX: 60, relY: 10, type: "giant" }, { id: "DE_BD", relX: 90, relY: 70, type: "major" }, { id: "DE_PD", relX: 110, relY: 40, type: "minor" } ], connections: [ [0,1], [1,2], [2,3], [2,4], [4,5], [1,3], [4,3] ], entryPointId: "DE_CB", exitPointId: "DE_CT" },
+        "Símbolo Arcano": { name: "Símbolo Arcano", category: "MagicL1", stars: [ { id: "SA_B", relX: 40, relY: 90, type: "major" }, { id: "SA_H", relX: 40, relY: 60, type: "minor" }, { id: "SA_CB", relX: 40, relY: 30, type: "giant" }, { id: "SA_PE", relX: 10, relY: 10, type: "major" }, { id: "SA_PC", relX: 40, relY: 0, type: "major" }, { id: "SA_PD", relX: 70, relY: 10, type: "major" } ], connections: [ [0,1], [1,2], [2,3], [2,4], [2,5] ], entryPointId: "SA_B", exitPointId: "SA_CB" },
+        "Arco Longo Celestial": { name: "Arco Longo Celestial", category: "ItemL1", stars: [ {id:"ALC_PS", relX:50, relY:10, type:"minor"}, {id:"ALC_CS", relX:80, relY:30, type:"major"}, {id:"ALC_PC", relX:90, relY:70, type:"giant"}, {id:"ALC_CI", relX:80, relY:110, type:"major"}, {id:"ALC_PI", relX:50, relY:130, type:"minor"}, {id:"ALC_CRD", relX:20, relY:70, type:"minor"} ], connections: [ [0,1], [1,2], [2,3], [3,4], [0,5], [4,5], [2,5] ], entryPointId: "ALC_PI", exitPointId: "ALC_PC" },
+        "Martelo Astral": { name: "Martelo Astral", category: "ItemL1", stars: [ {id:"MA_CB", relX:50, relY:130, type:"major"}, {id:"MA_BH", relX:50, relY:90, type:"minor"}, {id:"MA_TH", relX:50, relY:50, type:"major"}, {id:"MA_CSE", relX:20, relY:20, type:"giant"}, {id:"MA_CSD", relX:80, relY:20, type:"giant"}, {id:"MA_CIE", relX:20, relY:50, type:"minor"}, {id:"MA_CID", relX:80, relY:50, type:"minor"} ], connections: [ [0,1],[1,2],[2,3],[2,4],[2,5],[2,6],[3,5],[4,6] ], entryPointId: "MA_CB", exitPointId: "MA_TH" },
+        "Olho Onisciente": { name: "Olho Onisciente", category: "MagicL1", stars: [ {id:"OO_P", relX:50, relY:50, type:"giant"}, {id:"OO_IN", relX:50, relY:20, type:"major"}, {id:"OO_IS", relX:50, relY:80, type:"major"}, {id:"OO_IL", relX:20, relY:50, type:"major"}, {id:"OO_IO", relX:80, relY:50, type:"major"}, {id:"OO_PS", relX:50, relY:0, type:"minor"}, {id:"OO_PI", relX:50, relY:100, type:"minor"} ], connections: [ [0,1],[0,2],[0,3],[0,4],[1,3],[1,4],[2,3],[2,4],[1,5],[2,6],[3,5],[3,6],[4,5],[4,6] ], entryPointId: "OO_PI", exitPointId: "OO_P" },
+        "Poção Cósmica": { name: "Poção Cósmica", category: "ItemL1", stars: [ {id:"PC_BaseE", relX:30, relY:100, type:"minor"}, {id:"PC_BaseD", relX:70, relY:100, type:"minor"}, {id:"PC_CorpoE", relX:20, relY:70, type:"major"}, {id:"PC_CorpoD", relX:80, relY:70, type:"major"}, {id:"PC_GargaloE", relX:40, relY:40, type:"minor"}, {id:"PC_GargaloD", relX:60, relY:40, type:"minor"}, {id:"PC_Boca", relX:50, relY:10, type:"giant"}, {id:"PC_Liquido", relX:50, relY:80, type:"major"} ], connections: [ [0,1],[0,2],[1,3],[2,3],[2,4],[3,5],[4,5],[4,6],[5,6],[7,2],[7,3] ], entryPointId: "PC_BaseE", exitPointId: "PC_Liquido" },
+        "Chave dos Reinos": { name: "Chave dos Reinos", category: "ItemL1", stars: [ {id:"CK_AnelT", relX:50, relY:10, type:"major"}, {id:"CK_AnelE", relX:20, relY:30, type:"minor"}, {id:"CK_AnelD", relX:80, relY:30, type:"minor"}, {id:"CK_AnelB", relX:50, relY:50, type:"major"}, {id:"CK_Haste", relX:50, relY:90, type:"minor"}, {id:"CK_Dente1", relX:30, relY:120, type:"minor"}, {id:"CK_Dente2", relX:70, relY:120, type:"minor"} ], connections: [ [0,1],[0,2],[1,3],[2,3],[3,4],[4,5],[4,6] ], entryPointId: "CK_Dente1", exitPointId: "CK_Haste" },
+        "Tomo Infinito": { name: "Tomo Infinito", category: "ItemL1", stars: [ {id:"TI_PagES", relX:20, relY:20, type:"major"}, {id:"TI_PagEI", relX:20, relY:100, type:"major"}, {id:"TI_LombadaC", relX:50, relY:60, type:"giant"}, {id:"TI_PagDS", relX:80, relY:20, type:"major"}, {id:"TI_PagDI", relX:80, relY:100, type:"major"} ], connections: [ [0,1],[0,2],[1,2],[2,3],[2,4],[3,4] ], entryPointId: "TI_PagEI", exitPointId: "TI_LombadaC" },
+        "Amuleto Guardião": { name: "Amuleto Guardião", category: "ItemL1", stars: [ {id:"AG_Topo", relX:50, relY:10, type:"minor"}, {id:"AG_EloE", relX:30, relY:30, type:"minor"}, {id:"AG_EloD", relX:70, relY:30, type:"minor"}, {id:"AG_CorpoSE", relX:20, relY:60, type:"major"}, {id:"AG_CorpoSD", relX:80, relY:60, type:"major"}, {id:"AG_CorpoIE", relX:30, relY:100, type:"major"}, {id:"AG_CorpoID", relX:70, relY:100, type:"major"}, {id:"AG_Joia", relX:50, relY:70, type: "giant"} ], connections: [ [0,1],[0,2],[1,3],[2,4],[3,5],[4,6],[5,6],[7,3],[7,4],[7,5],[7,6] ], entryPointId: "AG_CorpoIE", exitPointId: "AG_Joia" },
+        "Berrante da Bravura": { name: "Berrante da Bravura", category: "ItemL1", stars: [ {id:"BB_Bocal", relX:10, relY:60, type:"major"}, {id:"BB_Curva1", relX:30, relY:70, type:"minor"}, {id:"BB_Curva2", relX:60, relY:60, type:"major"}, {id:"BB_Curva3", relX:80, relY:40, type:"minor"}, {id:"BB_Abertura", relX:100, relY:20, type:"giant"} ], connections: [ [0,1],[1,2],[2,3],[3,4] ], entryPointId: "BB_Bocal", exitPointId: "BB_Curva2" },
+        "Mão Espectral": { name: "Mão Espectral", category: "MagicL1", stars: [ {id:"ME_Pulso", relX:50, relY:120, type:"major"}, {id:"ME_Palma", relX:50, relY:90, type:"giant"}, {id:"ME_Dedo1", relX:20, relY:60, type:"minor"}, {id:"ME_Dedo2", relX:40, relY:40, type:"minor"}, {id:"ME_Dedo3", relX:60, relY:40, type:"minor"}, {id:"ME_Dedo4", relX:80, relY:60, type:"minor"}, {id:"ME_Polegar", relX:10, relY:90, type:"minor"} ], connections: [ [0,1],[1,2],[1,3],[1,4],[1,5],[1,6] ], entryPointId: "ME_Pulso", exitPointId: "ME_Palma" },
+        "Vórtice Arcano": { name: "Vórtice Arcano", category: "MagicL1", stars: [ {id:"VA_Ext", relX:10, relY:50, type:"major"}, {id:"VA_C1", relX:30, relY:20, type:"minor"}, {id:"VA_C2", relX:70, relY:30, type:"major"}, {id:"VA_C3", relX:80, relY:70, type:"minor"}, {id:"VA_C4", relX:50, relY:80, type:"major"}, {id:"VA_Nucleo", relX:45, relY:50, type:"giant"} ], connections: [ [0,1],[1,2],[2,3],[3,4],[4,5],[5,0] ], entryPointId: "VA_Ext", exitPointId: "VA_Nucleo" },
+        "Pena Alada": { name: "Pena Alada", category: "ItemL1", stars: [ {id:"PA_Base", relX:20, relY:100, type:"minor"}, {id:"PA_HasteC", relX:30, relY:60, type:"major"}, {id:"PA_Ponta", relX:40, relY:10, type:"minor"}, {id:"PA_AsaInt", relX:60, relY:50, type:"giant"}, {id:"PA_AsaExt", relX:90, relY:40, type:"major"} ], connections: [ [0,1],[1,2],[1,3],[3,4] ], entryPointId: "PA_Base", exitPointId: "PA_AsaInt" },
+        "Coroa Imperial": { name: "Coroa Imperial", category: "ItemL1", stars: [ {id:"CI_BaseE", relX:10, relY:80, type:"major"}, {id:"CI_BaseD", relX:90, relY:80, type:"major"}, {id:"CI_PontaE", relX:20, relY:20, type:"minor"}, {id:"CI_PontaC", relX:50, relY:0, type:"giant"}, {id:"CI_PontaD", relX:80, relY:20, type:"minor"}, {id:"CI_JoiaE", relX:35, relY:50, type:"major"}, {id:"CI_JoiaD", relX:65, relY:50, type:"major"} ], connections: [ [0,1],[0,2],[0,5],[1,4],[1,6],[2,3],[3,4],[2,5],[4,6],[5,3],[6,3] ], entryPointId: "CI_BaseE", exitPointId: "CI_PontaC" },
+        "Serpente Estelar": { name: "Serpente Estelar", category: "CreatureL1", stars: [ {id:"SE_Cauda", relX:10, relY:100, type:"minor"}, {id:"SE_C1", relX:30, relY:80, type:"major"}, {id:"SE_C2", relX:60, relY:100, type:"minor"}, {id:"SE_C3", relX:80, relY:70, type:"major"}, {id:"SE_Pescoco", relX:60, relY:40, type:"minor"}, {id:"SE_Cabeca", relX:50, relY:10, type:"giant"} ], connections: [ [0,1],[1,2],[2,3],[3,4],[4,5] ], entryPointId: "SE_Cauda", exitPointId: "SE_Cabeca" },
+        "Garra Dracônica": { name: "Garra Dracônica", category: "CreatureL1", stars: [ {id:"GD_Pulso", relX:50, relY:100, type:"major"}, {id:"GD_Palma", relX:50, relY:70, type:"giant"}, {id:"GD_DedoE", relX:20, relY:30, type:"major"}, {id:"GD_DedoC", relX:50, relY:10, type:"major"}, {id:"GD_DedoD", relX:80, relY:30, type:"major"} ], connections: [ [0,1],[1,2],[1,3],[1,4] ], entryPointId: "GD_Pulso", exitPointId: "GD_Palma" },
+        "Asas da Fênix": { name: "Asas da Fênix", category: "CreatureL1", stars: [ {id:"AF_Centro", relX:50, relY:70, type:"giant"}, {id:"AF_AsaESup", relX:20, relY:30, type:"major"}, {id:"AF_AsaEInf", relX:10, relY:80, type:"minor"}, {id:"AF_AsaDSup", relX:80, relY:30, type:"major"}, {id:"AF_AsaDInf", relX:90, relY:80, type:"minor"} ], connections: [ [0,1],[0,2],[0,3],[0,4],[1,2],[3,4] ], entryPointId: "AF_Centro", exitPointId: "AF_AsaESup" }
       };
-
-      const constellationDefinitions = {
-        "PontoInicial": { name: "Nexus Central", stars: [{ id: "StartNexus", relX: 50, relY: 50, type: "nexus" }], layout: { offsetX: vbW / 2 - 25, offsetY: vbH / 2 - 25, scale: 1 }, connections: [], entryPointId: "StartNexus", exitPointId: "StartNexus", category: "Hub" },
-        ...handcraftedConstellations
+      const layer2Constellations = {
+        "Fortaleza Estelar": { name: "Fortaleza Estelar", category: "WorldL2", stars: [ {id:"FE_BE", relX:20, relY:180, type:"major"}, {id:"FE_BD", relX:180, relY:180, type:"major"}, {id:"FE_TE", relX:20, relY:20, type:"major"}, {id:"FE_TD", relX:180, relY:20, type:"major"}, {id:"FE_Portao", relX:100, relY:190, type:"giant"}, {id:"FE_TorreSE", relX:30, relY:30, type:"giant"}, {id:"FE_TorreSD", relX:170, relY:30, type:"giant"}, {id:"FE_MuralhaS", relX:100, relY:20, type:"major"}, {id:"FE_MuralhaL", relX:20, relY:100, type:"major"}, {id:"FE_MuralhaO", relX:180, relY:100, type:"major"}, {id:"FE_MuralhaN", relX:100, relY:180, type:"major"}, {id:"FE_Patio", relX:100, relY:100, type:"nexus"} ], connections: [ [0,1],[0,2],[1,3],[2,3], [0,8],[1,9],[2,7],[3,7], [4,0],[4,1],[4,10], [5,2],[5,7],[5,8], [6,3],[6,7],[6,9], [11,0],[11,1],[11,2],[11,3],[11,5],[11,6],[11,7],[11,8],[11,9],[11,10] ], entryPointId: "FE_Portao", exitPointId: "FE_TorreSE" },
+        "Nebulosa da Serpente": { name: "Nebulosa da Serpente", category: "CreatureL2", stars: [ {id:"NS_Cauda", relX:10, relY:100, type:"major"}, {id:"NS_C1", relX:40, relY:130, type:"minor"}, {id:"NS_C2", relX:80, relY:110, type:"major"}, {id:"NS_C3", relX:120, relY:140, type:"minor"}, {id:"NS_C4", relX:160, relY:120, type:"major"}, {id:"NS_C5", relX:190, relY:90, type:"minor"}, {id:"NS_Pescoco", relX:170, relY:50, type:"major"}, {id:"NS_Cabeca", relX:150, relY:20, type:"giant"}, {id:"NS_Olho", relX:145, relY:15, type:"minor"} ], connections: [ [0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8] ], entryPointId: "NS_Cauda", exitPointId: "NS_Cabeca" },
+        "Árvore Cósmica": { name: "Árvore Cósmica", category: "WorldL2", stars: [ {id:"AC_Raiz", relX:100, relY:190, type:"giant"}, {id:"AC_TroncoB", relX:100, relY:150, type:"major"}, {id:"AC_TroncoM", relX:100, relY:100, type:"major"}, {id:"AC_TroncoT", relX:100, relY:50, type:"major"}, {id:"AC_GalhoE1", relX:60, relY:70, type:"minor"}, {id:"AC_GalhoE2", relX:30, relY:40, type:"major"}, {id:"AC_GalhoD1", relX:140, relY:70, type:"minor"}, {id:"AC_GalhoD2", relX:170, relY:40, type:"major"}, {id:"AC_CopaC", relX:100, relY:10, type:"giant"} ], connections: [ [0,1],[1,2],[2,3],[3,4],[4,5],[3,6],[6,7],[3,8] ], entryPointId: "AC_Raiz", exitPointId: "AC_CopaC" },
+        "Espiral Temporal": { name: "Espiral Temporal", category: "MagicL2", stars: [ {id:"ET_Ext", relX:10, relY:100, type:"major"}, {id:"ET_C1", relX:50, relY:30, type:"minor"}, {id:"ET_C2", relX:150, relY:10, type:"major"}, {id:"ET_C3", relX:190, relY:100, type:"minor"}, {id:"ET_C4", relX:150, relY:170, type:"major"}, {id:"ET_C5", relX:50, relY:190, type:"minor"}, {id:"ET_C6", relX:70, relY:80, type:"major"}, {id:"ET_Nucleo", relX:100, relY:100, type:"giant"} ], connections: [ [0,1],[1,2],[2,3],[3,4],[4,5],[5,0], [0,6],[1,6],[2,6],[3,6],[4,6],[5,6],[6,7],[7,2],[7,4] ], entryPointId: "ET_Ext", exitPointId: "ET_Nucleo" },
+        "Montanha do Dragão": { name: "Montanha do Dragão", category: "WorldL2", stars: [ {id:"MD_BaseE", relX:20, relY:180, type:"major"}, {id:"MD_BaseD", relX:180, relY:180, type:"major"}, {id:"MD_LadeiraE", relX:60, relY:120, type:"minor"}, {id:"MD_LadeiraD", relX:140, relY:120, type:"minor"}, {id:"MD_PicoAuxE", relX:80, relY:70, type:"major"}, {id:"MD_PicoAuxD", relX:120, relY:70, type:"major"}, {id:"MD_PicoPrincipal", relX:100, relY:20, type:"giant"}, {id:"MD_Caverna", relX:100, relY:150, type:"nexus"} ], connections: [ [0,2],[1,3],[2,4],[3,5],[4,6],[5,6],[0,7],[1,7],[2,7],[3,7] ], entryPointId: "MD_BaseE", exitPointId: "MD_PicoPrincipal" }
       };
+      const layer3Templates = [
+        { type: "Linha2", stars: [{id:"_L2A",relX:10,relY:10,type:"leaf"},{id:"_L2B",relX:40,relY:10,type:"leaf"}], connections:[[0,1]] },
+        { type: "Linha3", stars: [{id:"_L3A",relX:10,relY:10,type:"leaf"},{id:"_L3B",relX:30,relY:10,type:"leaf"},{id:"_L3C",relX:50,relY:10,type:"leaf"}], connections:[[0,1],[1,2]] },
+        { type: "Triangulo", stars: [{id:"_TA",relX:25,relY:10,type:"leaf"},{id:"_TB",relX:10,relY:40,type:"leaf"},{id:"_TC",relX:40,relY:40,type:"leaf"}], connections:[[0,1],[1,2],[2,0]] },
+        { type: "VForm", stars: [{id:"_VA",relX:10,relY:10,type:"leaf"},{id:"_VB",relX:30,relY:30,type:"leaf"},{id:"_VC",relX:50,relY:10,type:"leaf"}], connections:[[0,1],[1,2]] }
+      ];
 
-      // Todas as constelações principais são agora artesanais
-      let constelNames = Object.keys(handcraftedConstellations);
-      // Embaralhar para que a ordem no círculo seja aleatória
-      for (let i = constelNames.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [constelNames[i], constelNames[j]] = [constelNames[j], constelNames[i]];
+      const layer3Constellations = {};
+      const numLayer3Constellations = Object.keys(layer2Constellations).length * 3; // 3 folhas por constelação L2
+      for (let i = 0; i < numLayer3Constellations; i++) {
+          const template = layer3Templates[Math.floor(Math.random() * layer3Templates.length)];
+          const name = `FolhaEstelar_${String.fromCharCode(65+i)}`;
+          const stars = template.stars.map(s => ({...s, id: name + s.id, type: "leaf"}));
+          layer3Constellations[name] = {
+              name: name, category: "LeafL3", stars: stars, connections: template.connections,
+              entryPointId: stars[0].id, exitPointId: stars[stars.length-1].id
+          };
       }
-      const numMainConstellations = constelNames.length; // Deve ser 20
+
+      const allConstellationDefinitions = {
+        "PontoInicial": { name: "Nexus Central", stars: [{ id: "StartNexus", relX: 0, relY: 0, type: "nexus" }], layout: { offsetX: 0, offsetY: 0, scale: 1 }, connections: new Set(), entryPointId: "StartNexus", exitPointId: "StartNexus", category: "Hub" }, // Hub em (0,0) do viewBox
+        ...layer1Constellations, ...layer2Constellations, ...layer3Constellations
+      };
+
+      const layer1Names = Object.keys(layer1Constellations);
+      const layer2Names = Object.keys(layer2Constellations);
+      const layer3Names = Object.keys(layer3Constellations);
+      [layer1Names, layer2Names, layer3Names].forEach(arr => arr.sort(() => 0.5 - Math.random()));
 
       console.log("--- Generating Nodes ---");
-      // ... (o restante do código para gerar nós, mini-constelações, links, UI, etc., permanece o mesmo da versão anterior)
-      // A única diferença é que não haverá mais o `rpgThemesPool` para constelações principais.
-
-      const hubNodeDef = constellationDefinitions["PontoInicial"];
+      // Hub Central (PontoInicial)
+      const hubDef = allConstellationDefinitions["PontoInicial"];
       const hubGlobalId = globalNodeIdCounter++;
-      const hubX = hubNodeDef.layout.offsetX + hubNodeDef.stars[0].relX * hubNodeDef.layout.scale;
-      const hubY = hubNodeDef.layout.offsetY + hubNodeDef.stars[0].relY * hubNodeDef.layout.scale;
-      allNodes.push({ id: hubGlobalId, name: hubNodeDef.stars[0].id, constellation: "PontoInicial", x: hubX, y: hubY, type: hubNodeDef.stars[0].type, el: null, connections: new Set() });
-      nodeIdToInternalIdMap.set(hubGlobalId, { constellationName: "PontoInicial", starId: hubNodeDef.stars[0].id });
+      // O hub está no centro do viewBox, que é (0,0) devido à configuração do vbX, vbY
+      const hubX = hubDef.layout.offsetX + hubDef.stars[0].relX * hubDef.layout.scale; // Será 0
+      const hubY = hubDef.layout.offsetY + hubDef.stars[0].relY * hubDef.layout.scale; // Será 0
+      allNodes.push({ id: hubGlobalId, name: hubDef.stars[0].id, constellation: "PontoInicial", x: hubX, y: hubY, type: hubDef.stars[0].type, el: null, connections: new Set(), layer:0 });
+      nodeIdToInternalIdMap.set(hubGlobalId, { constellationName: "PontoInicial", starId: hubDef.stars[0].id });
 
-      const mainCircleRadius = vbW * 0.43;
 
-      constelNames.forEach((constelName, idx) => {
-        const constelDef = constellationDefinitions[constelName];
-        if (!constelDef || !constelDef.stars || constelDef.stars.length === 0) {
-            console.warn(`Constelação "${constelName}" pulada.`); return;
-        }
+      const layerRadii = [vbW * 0.15, vbW * 0.28, vbW * 0.42]; // Raios ajustados para o novo viewBox
+      const layerScales = [0.8, 1.1, 0.65];
+      const webNexusSpread = 70; // Aumentado para mais desvio
 
-        const angle = (idx / numMainConstellations) * 2 * Math.PI + (Math.PI / numMainConstellations);
-        const mainConstelAnchorX = hubX + mainCircleRadius * Math.cos(angle);
-        const mainConstelAnchorY = hubY + mainCircleRadius * Math.sin(angle);
-        let previousNodeIdInArm = hubGlobalId;
+      function createAndLayoutConstellation(constelName, anchorX, anchorY, baseScale, layerIndex) {
+          const constelDef = allConstellationDefinitions[constelName];
+          if (!constelDef || !constelDef.stars || constelDef.stars.length === 0) return null;
 
-        const miniConstelDistFactor = 0.45;
-        const miniAnchorX = hubX + (mainConstelAnchorX - hubX) * miniConstelDistFactor;
-        const miniAnchorY = hubY + (mainConstelAnchorY - hubY) * miniConstelDistFactor;
-        const miniConstelIdBase = `MiniCluster_${idx}`;
-        const numMiniStars = Math.floor(Math.random() * 2) + 2;
-        const miniStarsData = [];
-        const miniSpread = 40;
+          const constelScale = baseScale * (0.9 + Math.random() * 0.2);
+          let minRelX = Infinity, maxRelX = -Infinity, minRelY = Infinity, maxRelY = -Infinity;
+          constelDef.stars.forEach(s => {
+              minRelX = Math.min(minRelX, s.relX); maxRelX = Math.max(maxRelX, s.relX);
+              minRelY = Math.min(minRelY, s.relY); maxRelY = Math.max(maxRelY, s.relY);
+          });
+          const constelContentWidth = (maxRelX - minRelX) || 50;
+          const constelContentHeight = (maxRelY - minRelY) || 50;
 
-        for (let k = 0; k < numMiniStars; k++) {
-            miniStarsData.push({
-                id: `${miniConstelIdBase}_Star${k}`,
-                relX: (Math.random() - 0.5) * miniSpread,
-                relY: (Math.random() - 0.5) * miniSpread,
-                type: "cluster"
-            });
-        }
-        const miniConnections = [];
-        if (numMiniStars === 2) miniConnections.push([0,1]);
-        if (numMiniStars === 3) miniConnections.push([0,1], [1,2], [2,0]);
+          const constelOffsetX = anchorX - (minRelX * constelScale + (constelContentWidth * constelScale / 2));
+          const constelOffsetY = anchorY - (minRelY * constelScale + (constelContentHeight * constelScale / 2));
+          constelDef.layout = { offsetX: constelOffsetX, offsetY: constelOffsetY, scale: constelScale };
 
-        const miniInternalIdToGlobalId = new Map();
-        miniStarsData.forEach(starData => {
-            const globalId = globalNodeIdCounter++;
-            miniInternalIdToGlobalId.set(starData.id, globalId);
-            allNodes.push({
-                id: globalId, name: starData.id, constellation: miniConstelIdBase,
-                x: miniAnchorX + starData.relX, y: miniAnchorY + starData.relY,
-                type: starData.type, el: null, connections: new Set()
-            });
-            nodeIdToInternalIdMap.set(globalId, { constellationName: miniConstelIdBase, starId: starData.id });
-        });
+          const internalIdToGlobalId = new Map();
+          constelDef.stars.forEach(starData => {
+              const globalId = globalNodeIdCounter++;
+              internalIdToGlobalId.set(starData.id, globalId);
+              allNodes.push({
+                  id: globalId, name: starData.id, constellation: constelName, layer: layerIndex,
+                  x: constelDef.layout.offsetX + starData.relX * constelDef.layout.scale,
+                  y: constelDef.layout.offsetY + starData.relY * constelDef.layout.scale,
+                  type: starData.type, el: null, connections: new Set()
+              });
+              nodeIdToInternalIdMap.set(globalId, { constellationName: constelName, starId: starData.id });
+          });
+          constelDef.internalIdToGlobalId = internalIdToGlobalId;
 
-        miniConnections.forEach(pair => {
-            const id1 = miniInternalIdToGlobalId.get(miniStarsData[pair[0]].id);
-            const id2 = miniInternalIdToGlobalId.get(miniStarsData[pair[1]].id);
-            const node1 = allNodes.find(n=>n.id===id1), node2 = allNodes.find(n=>n.id===id2);
-            if(node1 && node2) { node1.connections.add(id2); node2.connections.add(id1); }
-        });
+          constelDef.connections.forEach(pair => {
+              if (pair[0] >= constelDef.stars.length || pair[1] >= constelDef.stars.length) { return; }
+              const id1 = internalIdToGlobalId.get(constelDef.stars[pair[0]].id);
+              const id2 = internalIdToGlobalId.get(constelDef.stars[pair[1]].id);
+              const node1 = allNodes.find(n => n.id === id1), node2 = allNodes.find(n => n.id === id2);
+              if (node1 && node2) { node1.connections.add(id2); node2.connections.add(id1); }
+          });
+          return constelDef;
+      }
 
-        const firstMiniStarGlobalId = miniInternalIdToGlobalId.get(miniStarsData[0].id);
-        const hubN = allNodes.find(n=>n.id===previousNodeIdInArm);
-        const firstMiniN = allNodes.find(n=>n.id===firstMiniStarGlobalId);
-        if(hubN && firstMiniN) { hubN.connections.add(firstMiniStarGlobalId); firstMiniN.connections.add(previousNodeIdInArm); }
+      function createWebNexusPath(startNodeGlobalId, endNodeGlobalId, pathIdPrefix, numNexus = 1) {
+          const startNode = allNodes.find(n => n.id === startNodeGlobalId);
+          const endNode = allNodes.find(n => n.id === endNodeGlobalId);
+          if (!startNode || !endNode) return { firstNexusId: null, lastNexusId: null };
 
-        previousNodeIdInArm = miniInternalIdToGlobalId.get(miniStarsData[miniStarsData.length -1].id);
+          let lastNexusIdInPath = startNodeGlobalId;
+          let firstNexusIdInPath = startNodeGlobalId;
 
-        const constelScale = 1.0 + Math.random() * 0.2;
-        let minRelX = Infinity, maxRelX = -Infinity, minRelY = Infinity, maxRelY = -Infinity;
-        constelDef.stars.forEach(s => {
-            minRelX = Math.min(minRelX, s.relX); maxRelX = Math.max(maxRelX, s.relX);
-            minRelY = Math.min(minRelY, s.relY); maxRelY = Math.max(maxRelY, s.relY);
-        });
-        const constelContentWidth = (maxRelX - minRelX) || 50;
-        const constelContentHeight = (maxRelY - minRelY) || 50;
+          for (let i = 0; i < numNexus; i++) {
+              const t = (i + 1) / (numNexus + 1);
+              const dx = endNode.x - startNode.x;
+              const dy = endNode.y - startNode.y;
+              const dist = Math.sqrt(dx*dx + dy*dy) || 1; // Evitar divisão por zero
+              const spreadAmount = webNexusSpread * (Math.random()*0.5 + 0.5); // Variação no desvio
+              const offsetX = -dy / dist * spreadAmount * (i%2 === 0 ? 1: -1);
+              const offsetY = dx / dist * spreadAmount * (i%2 === 0 ? 1: -1);
 
-        const constelOffsetX = mainConstelAnchorX - (minRelX * constelScale + (constelContentWidth * constelScale / 2));
-        const constelOffsetY = mainConstelAnchorY - (minRelY * constelScale + (constelContentHeight * constelScale / 2));
+              const nexusX = startNode.x + dx * t + offsetX;
+              const nexusY = startNode.y + dy * t + offsetY;
+              const nexusId = globalNodeIdCounter++;
+              allNodes.push({id: nexusId, name: `${pathIdPrefix}_WebNexus${i}`, constellation: "WebPath", layer: "Path", x: nexusX, y: nexusY, type:"web_nexus", el:null, connections:new Set()});
 
-        constelDef.layout = { offsetX: constelOffsetX, offsetY: constelOffsetY, scale: constelScale };
-        const internalIdToGlobalId = new Map();
+              const prevN = allNodes.find(n=>n.id===lastNexusIdInPath);
+              const currN = allNodes.find(n=>n.id===nexusId);
+              if(prevN && currN) { prevN.connections.add(nexusId); currN.connections.add(lastNexusIdInPath); }
 
-        constelDef.stars.forEach(starData => {
-          const globalId = globalNodeIdCounter++;
-          internalIdToGlobalId.set(starData.id, globalId);
-          nodeIdToInternalIdMap.set(globalId, { constellationName: constelName, starId: starData.id });
-          allNodes.push({ id: globalId, name: starData.id, constellation: constelName, x: constelDef.layout.offsetX + starData.relX * constelDef.layout.scale, y: constelDef.layout.offsetY + starData.relY * constelDef.layout.scale, type: starData.type, el: null, connections: new Set() });
-        });
+              if (i === 0 && numNexus > 0) firstNexusIdInPath = nexusId;
+              lastNexusIdInPath = nexusId;
+          }
 
-        if (constelDef.entryPointId) {
-            const entryPointGlobalId = internalIdToGlobalId.get(constelDef.entryPointId);
-            const lastMiniN = allNodes.find(n=>n.id===previousNodeIdInArm);
-            const entryPointN = allNodes.find(n => n.id === entryPointGlobalId);
-            if (lastMiniN && entryPointN) {
-                lastMiniN.connections.add(entryPointGlobalId); entryPointN.connections.add(previousNodeIdInArm);
-            }
-        }
+          const lastN = allNodes.find(n=>n.id===lastNexusIdInPath);
+          if (lastN && endNode && lastNexusIdInPath !== endNodeGlobalId) {
+             lastN.connections.add(endNodeGlobalId); endNode.connections.add(lastNexusIdInPath);
+          }
+          return { firstNexusId: numNexus > 0 ? firstNexusIdInPath : startNodeGlobalId, lastNexusId: lastNexusIdInPath };
+      }
 
-        constelDef.connections.forEach(pair => {
-          if (pair[0] >= constelDef.stars.length || pair[1] >= constelDef.stars.length) {return;}
-          const id1 = internalIdToGlobalId.get(constelDef.stars[pair[0]].id);
-          const id2 = internalIdToGlobalId.get(constelDef.stars[pair[1]].id);
-          const node1 = allNodes.find(n => n.id === id1), node2 = allNodes.find(n => n.id === id2);
-          if (node1 && node2) { node1.connections.add(id2); node2.connections.add(id1); }
-        });
+      layer1Names.forEach((name, idx) => {
+          const angle = (idx / layer1Names.length) * 2 * Math.PI;
+          const anchorX = hubX + layerRadii[0] * Math.cos(angle);
+          const anchorY = hubY + layerRadii[0] * Math.sin(angle);
+          const constelDef = createAndLayoutConstellation(name, anchorX, anchorY, layerScales[0], 1);
+          if (constelDef && constelDef.entryPointId) {
+              const entryGlobalId = constelDef.internalIdToGlobalId.get(constelDef.entryPointId);
+              createWebNexusPath(hubGlobalId, entryGlobalId, `H_L1_${idx}`, 1);
+          }
       });
 
-      console.log("--- Creating Inter-Constellation Links (Lateral) ---");
-      for (let i = 0; i < numMainConstellations; i++) {
-          const currentConstelName = constelNames[i];
-          const nextConstelName = constelNames[(i + 1) % numMainConstellations];
-          const currentConstelDef = constellationDefinitions[currentConstelName];
-          const nextConstelDef = constellationDefinitions[nextConstelName];
-
-          if (currentConstelDef && nextConstelDef && currentConstelDef.exitPointId && nextConstelDef.entryPointId &&
-              currentConstelDef.stars && currentConstelDef.stars.length > 0 &&
-              nextConstelDef.stars && nextConstelDef.stars.length > 0) {
-              const exitNode = allNodes.find(n => n.constellation === currentConstelName && n.name === currentConstelDef.exitPointId);
-              const entryNodeNext = allNodes.find(n => n.constellation === nextConstelName && n.name === nextConstelDef.entryPointId);
-              if (exitNode && entryNodeNext) {
-                  exitNode.connections.add(entryNodeNext.id);
-                  entryNodeNext.connections.add(exitNode.id);
+      layer2Names.forEach((nameL2, idxL2) => {
+          const angleL2 = (idxL2 / layer2Names.length) * 2 * Math.PI  + (Math.PI / layer2Names.length / 2);
+          const anchorX_L2 = hubX + layerRadii[1] * Math.cos(angleL2);
+          const anchorY_L2 = hubY + layerRadii[1] * Math.sin(angleL2);
+          const parentL1Name = layer1Names[idxL2 % layer1Names.length];
+          const parentL1Def = allConstellationDefinitions[parentL1Name];
+          if (parentL1Def && parentL1Def.exitPointId && parentL1Def.internalIdToGlobalId) {
+              const parentL1ExitGlobalId = parentL1Def.internalIdToGlobalId.get(parentL1Def.exitPointId);
+              const constelL2Def = createAndLayoutConstellation(nameL2, anchorX_L2, anchorY_L2, layerScales[1], 2);
+              if (constelL2Def && constelL2Def.entryPointId && parentL1ExitGlobalId) {
+                  const entryL2GlobalId = constelL2Def.internalIdToGlobalId.get(constelL2Def.entryPointId);
+                  createWebNexusPath(parentL1ExitGlobalId, entryL2GlobalId, `L1_L2_${idxL2}`, 1);
               }
           }
-      }
+      });
 
-      console.log("--- Creating Hub Shortcut Links ---");
-      const numShortcuts = Math.min(2, Math.floor(numMainConstellations / 8)); // Ainda menos atalhos
-      const hubNodeForShortcut = allNodes.find(n => n.id === hubGlobalId); // Renomeado para evitar conflito
-      if (hubNodeForShortcut) {
-        let createdShortcuts = 0;
-        let availableTargets = allNodes.filter(n =>
-            n.id !== hubGlobalId && !hubNodeForShortcut.connections.has(n.id) && n.constellation !== "PontoInicial" &&
-            !(constellationDefinitions[n.constellation] && n.name === constellationDefinitions[n.constellation].entryPointId &&
-              allNodes.some(m => m.constellation.startsWith("MiniCluster") && hubNodeForShortcut.connections.has(m.id) && m.connections.has(n.id)) )
-        );
-        availableTargets.sort(() => 0.5 - Math.random());
+      let l2ParentIndex = 0;
+      layer3Names.forEach((nameL3, idxL3) => {
+          const parentL2Name = layer2Names[l2ParentIndex % layer2Names.length];
+          const parentL2Def = allConstellationDefinitions[parentL2Name];
+          l2ParentIndex++;
+          if (parentL2Def && parentL2Def.exitPointId && parentL2Def.internalIdToGlobalId) {
+              const parentL2ExitGlobalId = parentL2Def.internalIdToGlobalId.get(parentL2Def.exitPointId);
+              const parentL2ExitNode = allNodes.find(n => n.id === parentL2ExitGlobalId);
+              if (parentL2ExitNode) {
+                  const angleOffsetVariation = (Math.random() - 0.5) * (Math.PI / 3); // Aumentar variação angular
+                  const angleL3 = Math.atan2(parentL2ExitNode.y - hubY, parentL2ExitNode.x - hubX) + angleOffsetVariation;
+                  const distFromL2Exit = 100 + Math.random()*60;
+                  const anchorX_L3 = parentL2ExitNode.x + distFromL2Exit * Math.cos(angleL3);
+                  const anchorY_L3 = parentL2ExitNode.y + distFromL2Exit * Math.sin(angleL3);
+                  const constelL3Def = createAndLayoutConstellation(nameL3, anchorX_L3, anchorY_L3, layerScales[2], 3);
+                  if (constelL3Def && constelL3Def.entryPointId) {
+                      const entryL3GlobalId = constelL3Def.internalIdToGlobalId.get(constelL3Def.entryPointId);
+                      const entryL3N = allNodes.find(n => n.id === entryL3GlobalId);
+                      if (parentL2ExitNode && entryL3N) {
+                           parentL2ExitNode.connections.add(entryL3GlobalId); entryL3N.connections.add(parentL2ExitGlobalId);
+                      }
+                  }
+              }
+          }
+      });
 
-        for (let targetNode of availableTargets) {
-            if (createdShortcuts >= numShortcuts) break;
-            if (targetNode.constellation.startsWith("MiniCluster_")) {
-                const firstStarOfThisMini = allNodes.find(m => m.constellation === targetNode.constellation && m.name.endsWith("_Star0"));
-                if (firstStarOfThisMini && hubNodeForShortcut.connections.has(firstStarOfThisMini.id)) continue;
-            }
-            hubNodeForShortcut.connections.add(targetNode.id);
-            targetNode.connections.add(hubNodeForShortcut.id);
-            createdShortcuts++;
-        }
-      }
+      console.log("--- Creating Web Links ---");
+      const maxDistSqForWebLinkDirect = (vbW * 0.12)**2; // Para links diretos sem nexus
+      const maxDistSqForWebLinkWithNexus = (vbW * 0.25)**2; // Para links que precisarão de nexus
+      const maxNexusForWebLink = 1; // Máximo 1 nexus para links de teia (para não poluir demais)
+      const maxWebLinksPerNode = 3; // Aumentar um pouco para mais teia
 
-      const drawnLinks = new Set();
+      allNodes.forEach(nodeA => {
+          if (nodeA.constellation === "PontoInicial" || nodeA.constellation === "WebPath") return;
+          let webLinksMadeFromThisNode = 0;
+
+          // Filtrar nós que já tem muitas conexões de teia
+          const existingWebConnections = Array.from(nodeA.connections).filter(connId => {
+              const connectedNode = allNodes.find(n => n.id === connId);
+              return connectedNode && connectedNode.constellation === "WebPath";
+          }).length;
+          if (existingWebConnections >= maxWebLinksPerNode) return;
+
+
+          const potentialTargets = allNodes.filter(nodeB =>
+              nodeB.id !== nodeA.id &&
+              nodeB.constellation !== "PontoInicial" &&
+              nodeB.constellation !== "WebPath" &&
+              nodeA.constellation !== nodeB.constellation &&
+              !nodeA.connections.has(nodeB.id) && !nodeB.connections.has(nodeA.id) &&
+              // Garantir que o alvo também não esteja saturado
+              Array.from(nodeB.connections).filter(connId => {
+                const connectedNode = allNodes.find(n => n.id === connId);
+                return connectedNode && connectedNode.constellation === "WebPath";
+              }).length < maxWebLinksPerNode
+          ).sort((b1, b2) => {
+              const dist1 = (nodeA.x - b1.x)**2 + (nodeA.y - b1.y)**2;
+              const dist2 = (nodeA.x - b2.x)**2 + (nodeA.y - b2.y)**2;
+              return dist1 - dist2;
+          });
+
+          for (let nodeB of potentialTargets) {
+              if (webLinksMadeFromThisNode >= maxWebLinksPerNode - existingWebConnections) break;
+
+              const distSq = (nodeA.x - nodeB.x)**2 + (nodeA.y - nodeB.y)**2;
+
+              if (distSq < maxDistSqForWebLinkWithNexus) {
+                  let numNexus = 0;
+                  if (distSq > maxDistSqForWebLinkDirect) {
+                      numNexus = Math.min(maxNexusForWebLink, Math.ceil(Math.sqrt(distSq / maxDistSqForWebLinkDirect)) -1 );
+                      numNexus = Math.max(1, numNexus); // Pelo menos 1 se for maior que a distância direta
+                  }
+
+                  // Uma chance menor de conectar se os nós já tiverem algumas conexões não-teia
+                  const busyFactor = (nodeA.connections.size + nodeB.connections.size) / 10; // Exemplo de fator
+                  if (Math.random() < busyFactor * 0.3) continue;
+
+
+                  createWebNexusPath(nodeA.id, nodeB.id, `Web_${nodeA.id.toString().slice(-2)}-${nodeB.id.toString().slice(-2)}`, numNexus);
+                  webLinksMadeFromThisNode++;
+              }
+          }
+      });
+
       allNodes.forEach(node1 => {
         node1.connections.forEach(node2Id => {
             const node2 = allNodes.find(n => n.id === node2Id);
             const linkIdForward = `${node1.id}-${node2Id}`;
-            const linkIdBackward = `${node2Id}-${node1.id}`;
 
-            if (node2 && !drawnLinks.has(linkIdForward) && !drawnLinks.has(linkIdBackward)) {
+            if (node2 && !linksToDraw.find(l => (l.id1 === node1.id && l.id2 === node2.id) || (l.id1 === node2.id && l.id2 === node1.id) )) {
                 let color = "#7040c0", dash = "", width = "1.5px";
-                const def1 = constellationDefinitions[node1.constellation];
-                const def2 = constellationDefinitions[node2.constellation];
+                const isWebPathLink = node1.constellation === "WebPath" || node2.constellation === "WebPath";
+                const isIntraConstellation = node1.constellation === node2.constellation && node1.constellation !== "WebPath" && node1.constellation !== "PontoInicial";
 
-                if ((node1.constellation === "PontoInicial" && node2.constellation.startsWith("MiniCluster_")) ||
-                    (node2.constellation === "PontoInicial" && node1.constellation.startsWith("MiniCluster_")) ||
-                    (node1.constellation.startsWith("MiniCluster_") && def2 && node2.name === def2.entryPointId) ||
-                    (node2.constellation.startsWith("MiniCluster_") && def1 && node1.name === def1.entryPointId) ) {
-                    color = "#9070a0"; dash = "4,2"; width = "1.8px";
+                if (isWebPathLink) {
+                    color = "#655070"; dash = "2,3"; width = "1.0px"; // Links de/para nexus de teia
+                } else if (!isIntraConstellation && node1.constellation !== "PontoInicial" && node2.constellation !== "PontoInicial") {
+                    color = "#807060"; dash = "5,2"; width = "1.2px"; // Links entre constelações (teia principal)
+                } else if (node1.constellation === "PontoInicial" || node2.constellation === "PontoInicial") {
+                    color = "#a08050"; dash = "4,2"; width = "1.8px"; // Links do Hub
                 }
-                else if (node1.constellation.startsWith("MiniCluster_") && node1.constellation === node2.constellation) {
-                    color = "#8080c0"; width = "1.2px";
-                }
-                else if (def1 && def2 && def1.category !== "Hub" && def2.category !== "Hub" &&
-                           !node1.constellation.startsWith("MiniCluster_") && !node2.constellation.startsWith("MiniCluster_") &&
-                           node1.constellation !== node2.constellation &&
-                           ( (node1.name === def1.exitPointId && node2.name === def2.entryPointId) ||
-                             (node2.name === def2.exitPointId && node1.name === def1.entryPointId) ) ) {
-                    color = "#40a070"; dash = "7,3"; width = "2.5px";
-                }
-                else if ( (node1.id === hubGlobalId && !node2.constellation.startsWith("MiniCluster_") && (!def2 || node2.name !== def2.entryPointId)) ||
-                          (node2.id === hubGlobalId && !node1.constellation.startsWith("MiniCluster_") && (!def1 || node1.name !== def1.entryPointId)) ||
-                          (node1.id === hubGlobalId && node2.constellation.startsWith("MiniCluster_") && !allNodes.find(m => m.id === hubGlobalId && m.connections.has(allNodes.find(s => s.constellation === node2.constellation && s.name.endsWith("_Star0"))?.id))) ||
-                          (node2.id === hubGlobalId && node1.constellation.startsWith("MiniCluster_") && !allNodes.find(m => m.id === hubGlobalId && m.connections.has(allNodes.find(s => s.constellation === node1.constellation && s.name.endsWith("_Star0"))?.id)))
-                        ) {
-                     let isMainPathLink = false;
-                     if(node1.id === hubGlobalId && node2.constellation.startsWith("MiniCluster_")) {
-                        const firstStar = allNodes.find(s => s.constellation === node2.constellation && s.name.endsWith("_Star0"));
-                        if (firstStar && allNodes.find(h => h.id === hubGlobalId).connections.has(firstStar.id)) isMainPathLink = true;
-                     }
-                     if(node2.id === hubGlobalId && node1.constellation.startsWith("MiniCluster_")) {
-                        const firstStar = allNodes.find(s => s.constellation === node1.constellation && s.name.endsWith("_Star0"));
-                        if (firstStar && allNodes.find(h => h.id === hubGlobalId).connections.has(firstStar.id)) isMainPathLink = true;
-                     }
-
-                    if (!isMainPathLink) {
-                        color = "#d030d0"; dash = "1,4"; width = "1.5px";
-                    }
-                }
-                drawLink(node1, node2, color, dash, width);
-                drawnLinks.add(linkIdForward);
+                linksToDraw.push({id1:node1.id, id2:node2.id, x1:node1.x, y1:node1.y, x2:node2.x, y2:node2.y, color, dash, width});
             }
         });
       });
+      linksToDraw.forEach(l => drawLink(l.x1,l.y1,l.x2,l.y2, l.color, l.dash, l.width));
 
       console.log("--- Generating Background Dust Stars ---");
-      const numBackgroundDustStars = 400;
+      // ... (código da poeira)
+      const numBackgroundDustStars = 200;
       const dustStarsContainer = document.createElementNS(SVG_NS, 'g');
-      skillTreeSvg.insertBefore(dustStarsContainer, skillTreeSvg.firstChild);
+      if(skillTreeSvg.firstChild) skillTreeSvg.insertBefore(dustStarsContainer, skillTreeSvg.firstChild);
+      else skillTreeSvg.appendChild(dustStarsContainer);
+
       for (let i = 0; i < numBackgroundDustStars; i++) {
           const dustStar = document.createElementNS(SVG_NS, 'circle');
-          dustStar.setAttribute('cx', (Math.random() * vbW).toFixed(1));
-          dustStar.setAttribute('cy', (Math.random() * vbH).toFixed(1));
+          dustStar.setAttribute('cx', (Math.random() * vbW + vbX).toFixed(1)); // Ajustar para o viewBox
+          dustStar.setAttribute('cy', (Math.random() * vbH + vbY).toFixed(1)); // Ajustar para o viewBox
           dustStar.setAttribute('r', (Math.random() * 1.0 + 0.2).toFixed(1));
           dustStar.setAttribute('fill', '#FFFFFF');
-          dustStar.setAttribute('opacity', (Math.random() * 0.20 + 0.03).toFixed(2));
+          dustStar.setAttribute('opacity', (Math.random() * 0.15 + 0.02).toFixed(2));
           dustStar.classList.add('dust-star');
           dustStarsContainer.appendChild(dustStar);
       }
 
-      function drawLink(node1, node2, strokeColor = "#7040c0", strokeDasharray = "", strokeWidth = "1.5") {
+
+      function drawLink(x1,y1,x2,y2, strokeColor = "#7040c0", strokeDasharray = "", strokeWidth = "1.5") {
           const l = document.createElementNS(SVG_NS,'line');
           l.setAttribute('class','skill-link');
-          l.setAttribute('x1',node1.x.toFixed(1)); l.setAttribute('y1',node1.y.toFixed(1));
-          l.setAttribute('x2',node2.x.toFixed(1)); l.setAttribute('y2',node2.y.toFixed(1));
+          l.setAttribute('x1',x1.toFixed(1)); l.setAttribute('y1',y1.toFixed(1));
+          l.setAttribute('x2',x2.toFixed(1)); l.setAttribute('y2',y2.toFixed(1));
           l.style.stroke = strokeColor;
           l.style.strokeWidth = strokeWidth;
           if (strokeDasharray) l.style.strokeDasharray = strokeDasharray;
-          skillTreeSvg.appendChild(l);
+          skillTreeSvg.appendChild(l); // GARANTIR QUE ESTÁ SENDO ADICIONADO AO SVG CORRETO
       }
       console.log("--- Node Generation Complete ---");
 
@@ -469,23 +431,20 @@
         let nodeDisplayName = node.name;
          if (node.constellation === "PontoInicial") {
             nodeDisplayName = "Nexus Central";
-        } else if (node.constellation.startsWith("MiniCluster_")) {
-            const clusterNum = node.constellation.split('_')[1];
-            nodeDisplayName = `Aglomerado Estelar ${String.fromCharCode(65 + parseInt(clusterNum))} - Ponto ${node.name.split('Star')[1]}`;
+        } else if (node.constellation === "WebPath" || node.constellation === "PathNexus") { // PathNexus era usado antes
+            nodeDisplayName = `Nexus (${node.name.split('_').pop()})`;
         } else {
-            // Para constelações artesanais, o node.name já é o ID da estrela (ex: GP_T)
-            // Podemos tentar deixar mais legível
-            let starNamePart = node.name.split('_').slice(1).join(' ') || node.name;
-            if (starNamePart.match(/^[A-Z]+$/)) { // Se for só as iniciais, como GP_T
-                starNamePart = node.name; // Mantém o ID curto
+            let starNamePart = node.name.includes('_') ? node.name.substring(node.name.indexOf('_') + 1) : node.name;
+            if (starNamePart.match(/^[A-Z]+$/) && starNamePart.length <= 3) {
+                starNamePart = node.name;
             }
-            nodeDisplayName = `${node.constellation} - ${starNamePart}`;
+            nodeDisplayName = `${node.constellation} (L${node.layer}) - ${starNamePart}`;
         }
         title.textContent = nodeDisplayName;
         c.appendChild(title);
 
         if (node.id !== startNode?.id) c.addEventListener('click', (e) => { e.stopPropagation(); handleNodeClick(node); });
-        skillTreeSvg.appendChild(c);
+        skillTreeSvg.appendChild(c); // GARANTIR QUE ESTÁ SENDO ADICIONADO AO SVG CORRETO
       });
 
       const decPointsBtn = document.getElementById('decreasePointsBtn'), incPointsBtn = document.getElementById('increasePointsBtn');
@@ -567,7 +526,7 @@
 
       updatePointsUI();
       let isPanning = false; let lastPanX, lastPanY;
-      skillTreeSvg.addEventListener('wheel', e => { e.preventDefault(); const zI=0.1,sD=e.deltaY<0?1:-1;const p=svgPt(e,skillTreeSvg,vbX,vbY,vbW,vbH);const nW=vbW*(1-sD*zI),nH=vbH*(1-sD*zI);if(nW<100||nW>60000)return; vbX=p.x-(p.x-vbX)*(nW/vbW);vbY=p.y-(p.y-vbY)*(nH/vbH);vbW=nW;vbH=nH;skillTreeSvg.setAttribute('viewBox',`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`); });
+      skillTreeSvg.addEventListener('wheel', e => { e.preventDefault(); const zI=0.1,sD=e.deltaY<0?1:-1;const p=svgPt(e,skillTreeSvg,vbX,vbY,vbW,vbH);const nW=vbW*(1-sD*zI),nH=vbH*(1-sD*zI);if(nW<500||nW>80000)return; vbX=p.x-(p.x-vbX)*(nW/vbW);vbY=p.y-(p.y-vbY)*(nH/vbH);vbW=nW;vbH=nH;skillTreeSvg.setAttribute('viewBox',`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`); });
       skillTreeSvg.addEventListener('mousedown', e => { if(e.target===skillTreeSvg || e.target.tagName === 'line' || e.target.classList.contains('dust-star') ){isPanning=true;const cP=getClientCoords(e);lastPanX=cP.x;lastPanY=cP.y;skillTreeSvg.style.cursor='grabbing';}});
       document.addEventListener('mousemove', e => { if(!isPanning)return;const cP=getClientCoords(e);const dX=cP.x-lastPanX,dY=cP.y-lastPanY;const scale=vbW/skillTreeSvg.getBoundingClientRect().width;vbX-=dX*scale;vbY-=dY*scale;skillTreeSvg.setAttribute('viewBox',`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`);lastPanX=cP.x;lastPanY=cP.y;});
       document.addEventListener('mouseup', () => { if(isPanning){isPanning=false;skillTreeSvg.style.cursor='grab';}});
@@ -575,6 +534,7 @@
       function getClientCoords(e){return e.touches?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY};}
       updateNodeAvailability();
       console.log("SCRIPT: Finalizado.");
+
     });
   </script>
 </body>
