@@ -3,198 +3,75 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Árvore de Talentos - CORREÇÃO CONEXÕES</title>
+  <title>Árvore de Talentos Cósmicos - Todas Constelações Artesanais!</title>
   <style>
+    /* Estilos CSS permanecem os mesmos da versão anterior */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       width: 100vw;
       height: 100vh;
       overflow: hidden;
-      background: #121220; /* Tom ainda mais escuro e levemente azulado */
+      background: #0c0c14;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      color: #e8e8e8;
+      color: #f0f0f0;
     }
+    #starsCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+    #uiContainer { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding-top: 10px; width: 100%; }
+    .header-content { text-align: center; margin-bottom: 8px; }
+    .header-content h1 { color: #f5f5f5; font-size: 1.5em; margin-bottom: 3px; }
+    #pointsContainer { display: flex; align-items: center; justify-content: center; margin-bottom: 10px; background-color: rgba(0,0,0,0.25); padding: 6px 12px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    #pointsContainer button { background-color: #585898; color: white; border: none; width: 26px; height: 26px; border-radius: 50%; font-size: 1em; font-weight: bold; cursor: pointer; margin: 0 8px; transition: background-color 0.2s; }
+    #pointsContainer button:hover { background-color: #7878b8; }
+    #pointsContainer button:disabled { background-color: #383838; cursor: not-allowed; }
+    #currentPointsDisplay { font-size: 1.3em; font-weight: bold; color: #FFD700; min-width: 25px; text-align: center; }
+    #maxPointsLabel { font-size: 0.75em; color: #b0b0b0; margin-left: 4px; }
+    #confirmButton { padding: 8px 16px; background: #006fe6; color: #fff; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 10px; font-size: 0.9em; transition: background-color 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    #confirmButton:hover { background: #0059b3; }
+    #confirmButton:disabled { background-color: #505050; cursor: not-allowed; }
+    #dividerLine { width: 90%; height: 1px; background-color: rgba(255, 255, 255, 0.1); margin-bottom: 10px; z-index: 1; }
+    #skillTreeSvg { width: 95vw; height: calc(100vh - 150px); overflow: hidden; cursor: grab; touch-action: none; background-color: rgba(30,30,55,0.15); border-radius: 8px; }
+    #skillTreeSvg:active { cursor: grabbing; }
 
-    #starsCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-      pointer-events: none;
-    }
+    #skillTreeSvg .skill-link { stroke: #7040c0; stroke-width: 1.5; pointer-events: none; }
+    #skillTreeSvg .skill-node { stroke-width: 1.5; cursor: pointer; transition: fill 0.15s, stroke 0.15s, r 0.15s, filter 0.15s, opacity 0.15s; }
+    #skillTreeSvg .skill-node.type-minor { fill: #7070b0; stroke: #9090d0; r: 7; }
+    #skillTreeSvg .skill-node.type-major { fill: #9090d0; stroke: #b0b0f0; r: 10; }
+    #skillTreeSvg .skill-node.type-giant { fill: #d0b050; stroke: #f0d070; r: 13; }
+    #skillTreeSvg .skill-node.type-nexus { fill: #c0c0c0; stroke: #ffffff; r: 8; }
+    #skillTreeSvg .skill-node.type-cluster { fill: #a0a0e0; stroke: #c0c0ff; r: 6; }
 
-    #uiContainer {
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-top: 10px; /* Reduzido */
-      width: 100%;
-    }
 
-    .header-content {
-      text-align: center;
-      margin-bottom: 8px; /* Reduzido */
-    }
-    .header-content h1 {
-      color: #f5f5f5;
-      font-size: 1.5em; /* Reduzido */
-      margin-bottom: 3px; /* Reduzido */
-    }
+    #skillTreeSvg .skill-node.unavailable { opacity: 0.25; cursor: default; pointer-events: none; }
+    #skillTreeSvg .skill-node.unavailable:hover { filter: none; }
+    #skillTreeSvg .skill-node:not(.unavailable):hover { filter: brightness(1.5); }
 
-    #pointsContainer {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 10px; /* Reduzido */
-      background-color: rgba(0,0,0,0.2);
-      padding: 6px 12px; /* Reduzido */
-      border-radius: 6px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-    #pointsContainer button {
-      background-color: #505090; /* Levemente ajustado */
-      color: white;
-      border: none;
-      width: 26px; /* Reduzido */
-      height: 26px; /* Reduzido */
-      border-radius: 50%;
-      font-size: 1em; /* Reduzido */
-      font-weight: bold;
-      cursor: pointer;
-      margin: 0 8px; /* Reduzido */
-      transition: background-color 0.2s;
-    }
-    #pointsContainer button:hover {
-      background-color: #7070b0;
-    }
-    #pointsContainer button:disabled {
-      background-color: #383838;
-      cursor: not-allowed;
-    }
-    #currentPointsDisplay {
-      font-size: 1.3em; /* Reduzido */
-      font-weight: bold;
-      color: #FFD700;
-      min-width: 25px;
-      text-align: center;
-    }
-     #maxPointsLabel {
-        font-size: 0.75em; /* Reduzido */
-        color: #b0b0b0;
-        margin-left: 4px;
-    }
-
-    #confirmButton {
-      padding: 8px 16px; /* Reduzido */
-      background: #006fe6;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-bottom: 10px; /* Reduzido */
-      font-size: 0.9em; /* Reduzido */
-      transition: background-color 0.2s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-    }
-    #confirmButton:hover {
-      background: #0059b3;
-    }
-     #confirmButton:disabled {
-      background-color: #505050;
-      cursor: not-allowed;
-    }
-
-    #dividerLine {
-        width: 90%;
-        height: 1px;
-        background-color: rgba(255, 255, 255, 0.15);
-        margin-bottom: 10px;
-        z-index: 1;
-    }
-
-    #skillTreeSvg {
-      width: 90vw;
-      height: calc(100vh - 160px);
-      overflow: hidden;
-      cursor: grab;
-      touch-action: none;
-      background-color: rgba(25,25,45,0.2);
-      border-radius: 8px;
-    }
-    #skillTreeSvg:active {
-        cursor: grabbing;
-    }
-
-    #skillTreeSvg .skill-link {
-      stroke: #a060ff;
-      stroke-width: 2;
-      pointer-events: none;
-    }
-    #skillTreeSvg .skill-node {
-      fill: #404080;
-      stroke: #7070c0;
-      stroke-width: 1.5;
-      r: 8;
-      cursor: pointer;
-      transition: fill 0.15s, stroke 0.15s, r 0.15s, filter 0.15s, opacity 0.15s;
-    }
-    #skillTreeSvg .skill-node.unavailable {
-        opacity: 0.3;
-        cursor: default;
-        pointer-events: none;
-    }
-    #skillTreeSvg .skill-node.unavailable:hover {
-        filter: none;
-    }
-    #skillTreeSvg .skill-node:not(.unavailable):hover {
-        filter: brightness(1.4);
-    }
-    #skillTreeSvg .skill-node.node-center {
-      fill: #ffb300;
-      stroke: #ff7f00;
-      r: 11;
-      cursor: default;
-    }
-    #skillTreeSvg .skill-node.node-center:hover {
-        filter: brightness(1.1);
-    }
-    #skillTreeSvg .skill-node.tentative {
-      fill: #a0e0a0;
-      stroke: #40c040;
-      r: 10;
-    }
+    #skillTreeSvg .skill-node.tentative { stroke: #30ff30; stroke-width: 2.5px; }
     #skillTreeSvg .skill-node.confirmed {
-      fill: #00d0d0;
-      stroke: #00a0a0;
-      r: 10;
+      fill: #28a745;
+      stroke: #1e7e34;
+      filter: drop-shadow(0 0 4px #28a745);
     }
-     #skillTreeSvg .skill-node.cannot-afford {
+    #skillTreeSvg .skill-node.node-start {
+        fill: #FFD700; stroke: #FFA500; r:16;
+        filter: drop-shadow(0 0 8px #FFD700);
     }
+    #skillTreeSvg .skill-node.cannot-afford { opacity: 0.4 !important; }
+    #skillTreeSvg .dust-star { pointer-events: none; }
   </style>
 </head>
 <body>
-
   <canvas id="starsCanvas"></canvas>
-
   <div id="uiContainer">
-    <div class="header-content">
-      <h1>Árvore de Talentos</h1>
-    </div>
-
+    <div class="header-content"><h1>Constelações de Talentos</h1></div>
     <div id="pointsContainer">
-      <button id="decreasePointsBtn" title="Diminuir pontos a gastar">-</button>
+      <button id="decreasePointsBtn">-</button>
       <span id="currentPointsDisplay">0</span>
       <span id="maxPointsLabel">/ 50</span>
-      <button id="increasePointsBtn" title="Aumentar pontos a gastar">+</button>
+      <button id="increasePointsBtn">+</button>
     </div>
-
     <button id="confirmButton">Confirmar Talentos</button>
     <div id="dividerLine"></div>
     <svg id="skillTreeSvg" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -202,235 +79,500 @@
 
   <script>
     console.log("SCRIPT: Iniciando.");
-
     document.addEventListener('DOMContentLoaded', () => {
       console.log("DOM: Carregado.");
-
-      let maxTotalPoints = 50;
-      let currentSpendablePoints = 0;
-      let pointsSpentOnTree = 0;
+      let maxTotalPoints = 50, currentSpendablePoints = 0, pointsSpentOnTree = 0;
 
       const starsCanvas = document.getElementById('starsCanvas');
       const ctx = starsCanvas.getContext('2d');
       let cW = starsCanvas.width = window.innerWidth; let cH = starsCanvas.height = window.innerHeight;
       window.addEventListener('resize', () => { cW = starsCanvas.width = window.innerWidth; cH = starsCanvas.height = window.innerHeight; });
-      const stars = Array.from({length: 150}, () => ({ x: Math.random()*cW,y: Math.random()*cH,s: Math.random()*1.5+0.5,v: Math.random()*0.3+0.1,o: Math.random()*0.5+0.2}));
-      function animS(){ ctx.clearRect(0,0,cW,cH); ctx.fillStyle='#121220'; ctx.fillRect(0,0,cW,cH); stars.forEach(s=>{ctx.globalAlpha=s.o;ctx.fillStyle='white';ctx.beginPath();ctx.arc(s.x,s.y,s.s,0,Math.PI*2);ctx.fill();s.y+=s.v;if(s.y>cH+s.s){s.y=0-s.s;s.x=Math.random()*cW;}}); ctx.globalAlpha=1.0; requestAnimationFrame(animS); }
+      const starsBG = Array.from({length: 250}, () => ({ x: Math.random()*cW,y: Math.random()*cH,s: Math.random()*1.2+0.3,v: Math.random()*0.25+0.05,o: Math.random()*0.6+0.1}));
+      function animS(){ ctx.clearRect(0,0,cW,cH); ctx.fillStyle='#0c0c14'; ctx.fillRect(0,0,cW,cH); starsBG.forEach(s=>{ctx.globalAlpha=s.o;ctx.fillStyle='white';ctx.beginPath();ctx.arc(s.x,s.y,s.s,0,Math.PI*2);ctx.fill();s.y+=s.v;if(s.y>cH+s.s){s.y=0-s.s;s.x=Math.random()*cW;}}); ctx.globalAlpha=1.0; requestAnimationFrame(animS); }
       animS();
 
       const skillTreeSvg = document.getElementById('skillTreeSvg');
       const SVG_NS = "http://www.w3.org/2000/svg";
-      let vbX = 0, vbY = 0, vbW = 800, vbH = 800;
+      let vbX = 0, vbY = 0, vbW = 3200, vbH = 3200; // Aumentei um pouco o ViewBox
       skillTreeSvg.setAttribute('viewBox', `${vbX} ${vbY} ${vbW} ${vbH}`);
-      const centerX = vbW/2, centerY = vbH/2;
-      const ringCfg = [1,6,12,18,24,30,9], radiusStep = 55;
-      const allNodes = [];
-      let nodeIdCnt = 0;
-      let nodesProcessedSoFar = 0; // Contador para o início do anel anterior
 
-      console.log("--- Generating Node Data ---");
-      ringCfg.forEach((nodesInRing, ringIdx) => {
-        const ringR = ringIdx === 0 ? 0 : radiusStep * (ringIdx + 0.4);
-        const createdInRing = [];
-        for (let i=0; i<nodesInRing; i++) {
-          const ang = (i/nodesInRing)*2*Math.PI - Math.PI/2;
-          const x = centerX+ringR*Math.cos(ang), y = centerY+ringR*Math.sin(ang);
-          const node = {id:nodeIdCnt++, x,y,ringIdx,el:null, connections: new Set()};
-          allNodes.push(node); createdInRing.push(node);
+      const allNodes = [], nodeElements = new Map();
+      const nodeIdToInternalIdMap = new Map();
+      let globalNodeIdCounter = 0;
+
+      // --- DEFINIÇÕES DE TODAS AS 20 CONSTELAÇÕES ARTESANAIS ---
+      const handcraftedConstellations = {
+        // As 5 originais (com pequenos ajustes se necessário)
+        "Gema do Poder": {
+            name: "Gema do Poder", category: "Item",
+            stars: [ { id: "GP_T", relX: 50, relY: 10, type: "major" }, { id: "GP_E", relX: 10, relY: 50, type: "minor" }, { id: "GP_D", relX: 90, relY: 50, type: "minor" }, { id: "GP_B", relX: 50, relY: 90, type: "major" }, { id: "GP_N", relX: 50, relY: 50, type: "giant" } ],
+            connections: [ [0,1], [0,2], [1,3], [2,3], [4,0], [4,1], [4,2], [4,3] ], entryPointId: "GP_B", exitPointId: "GP_T"
+        },
+        "Escudo Guardião": {
+            name: "Escudo Guardião", category: "Item",
+            stars: [ { id: "EG_T", relX: 50, relY: 10, type: "major" }, { id: "EG_OE", relX: 20, relY: 35, type: "minor" }, { id: "EG_OD", relX: 80, relY: 35, type: "minor" }, { id: "EG_CE", relX: 20, relY: 85, type: "minor" }, { id: "EG_CD", relX: 80, relY: 85, type: "minor" }, { id: "EG_P", relX: 50, relY: 110, type: "major" }, { id: "EG_C", relX: 50, relY: 60, type: "giant" } ],
+            connections: [ [0,1], [0,2], [1,3], [2,4], [3,5], [4,5], [6,0], [6,5], [6,1],[6,2],[6,3],[6,4]], entryPointId: "EG_P", exitPointId: "EG_T"
+        },
+        "Cajado Rúnico": {
+            name: "Cajado Rúnico", category: "Item",
+            stars: [ { id: "CR_B", relX: 10, relY: 130, type: "minor" }, { id: "CR_H1", relX: 10, relY: 100, type: "minor" }, { id: "CR_H2", relX: 10, relY: 70, type: "major" }, { id: "CR_H3", relX: 10, relY: 40, type: "minor" }, { id: "CR_T", relX: 10, relY: 10, type: "giant" } ],
+            connections: [ [0,1], [1,2], [2,3], [3,4] ], entryPointId: "CR_B", exitPointId: "CR_T"
+        },
+        "Diadema Estelar": {
+            name: "Diadema Estelar", category: "Item", // Mudei para item
+            stars: [ { id: "DE_PE", relX: 10, relY: 40, type: "minor" }, { id: "DE_BE", relX: 30, relY: 70, type: "major" }, { id: "DE_CB", relX: 60, relY: 60, type: "minor"}, { id: "DE_CT", relX: 60, relY: 10, type: "giant" }, { id: "DE_BD", relX: 90, relY: 70, type: "major" }, { id: "DE_PD", relX: 110, relY: 40, type: "minor" } ],
+            connections: [ [0,1], [1,2], [2,3], [2,4], [4,5], [1,3], [4,3] ], entryPointId: "DE_CB", exitPointId: "DE_CT"
+        },
+        "Símbolo Arcano": {
+            name: "Símbolo Arcano", category: "Magic",
+            stars: [ { id: "SA_B", relX: 40, relY: 90, type: "major" }, { id: "SA_H", relX: 40, relY: 60, type: "minor" }, { id: "SA_CB", relX: 40, relY: 30, type: "giant" }, { id: "SA_PE", relX: 10, relY: 10, type: "major" }, { id: "SA_PC", relX: 40, relY: 0, type: "major" }, { id: "SA_PD", relX: 70, relY: 10, type: "major" } ],
+            connections: [ [0,1], [1,2], [2,3], [2,4], [2,5] ], entryPointId: "SA_B", exitPointId: "SA_PC"
+        },
+
+        // Novas 15 Constelações Artesanais
+        "Arco Longo Celestial": {
+            name: "Arco Longo Celestial", category: "Item",
+            stars: [ {id:"ALC_PontaS", relX:50, relY:10, type:"minor"}, {id:"ALC_CurvaS", relX:80, relY:30, type:"major"}, {id:"ALC_PunhoC", relX:90, relY:70, type:"giant"}, {id:"ALC_CurvaI", relX:80, relY:110, type:"major"}, {id:"ALC_PontaI", relX:50, relY:130, type:"minor"}, {id:"ALC_Corda", relX:20, relY:70, type:"minor"} ],
+            connections: [ [0,1], [1,2], [2,3], [3,4], [0,5], [4,5], [2,5] ], entryPointId: "ALC_PontaI", exitPointId: "ALC_PontaS"
+        },
+        "Poção Cósmica": {
+            name: "Poção Cósmica", category: "Item",
+            stars: [ {id:"PC_BaseE", relX:30, relY:100, type:"minor"}, {id:"PC_BaseD", relX:70, relY:100, type:"minor"}, {id:"PC_CorpoE", relX:20, relY:70, type:"major"}, {id:"PC_CorpoD", relX:80, relY:70, type:"major"}, {id:"PC_GargaloE", relX:40, relY:40, type:"minor"}, {id:"PC_GargaloD", relX:60, relY:40, type:"minor"}, {id:"PC_Boca", relX:50, relY:10, type:"giant"}, {id:"PC_Liquido", relX:50, relY:80, type:"major"} ],
+            connections: [ [0,1],[0,2],[1,3],[2,3],[2,4],[3,5],[4,5],[4,6],[5,6],[7,2],[7,3] ], entryPointId: "PC_BaseE", exitPointId: "PC_Boca"
+        },
+        "Chave dos Reinos": {
+            name: "Chave dos Reinos", category: "Item",
+            stars: [ {id:"CK_AnelT", relX:50, relY:10, type:"major"}, {id:"CK_AnelE", relX:20, relY:30, type:"minor"}, {id:"CK_AnelD", relX:80, relY:30, type:"minor"}, {id:"CK_AnelB", relX:50, relY:50, type:"major"}, {id:"CK_Haste", relX:50, relY:90, type:"minor"}, {id:"CK_Dente1", relX:30, relY:120, type:"minor"}, {id:"CK_Dente2", relX:70, relY:120, type:"minor"} ],
+            connections: [ [0,1],[0,2],[1,3],[2,3],[3,4],[4,5],[4,6] ], entryPointId: "CK_Dente1", exitPointId: "CK_AnelT"
+        },
+        "Martelo Astral": {
+            name: "Martelo Astral", category: "Item",
+            stars: [ {id:"MA_Cabo", relX:50, relY:130, type:"major"}, {id:"MA_BaseHaste", relX:50, relY:90, type:"minor"}, {id:"MA_TopoHaste", relX:50, relY:50, type:"major"}, {id:"MA_CabecaSE", relX:20, relY:20, type:"giant"}, {id:"MA_CabecaSD", relX:80, relY:20, type:"giant"}, {id:"MA_CabecaIE", relX:20, relY:50, type:"minor"}, {id:"MA_CabecaID", relX:80, relY:50, type:"minor"} ],
+            connections: [ [0,1],[1,2],[2,3],[2,4],[2,5],[2,6],[3,5],[4,6] ], entryPointId: "MA_Cabo", exitPointId: "MA_CabecaSE" // ou SD
+        },
+        "Tomo Infinito": { // Livro aberto
+            name: "Tomo Infinito", category: "Item",
+            stars: [ {id:"TI_PagES", relX:20, relY:20, type:"major"}, {id:"TI_PagEI", relX:20, relY:100, type:"major"}, {id:"TI_LombadaC", relX:50, relY:60, type:"giant"}, {id:"TI_PagDS", relX:80, relY:20, type:"major"}, {id:"TI_PagDI", relX:80, relY:100, type:"major"} ],
+            connections: [ [0,1],[0,2],[1,2],[2,3],[2,4],[3,4] ], entryPointId: "TI_PagEI", exitPointId: "TI_PagDS"
+        },
+        "Amuleto Guardião": {
+            name: "Amuleto Guardião", category: "Item",
+            stars: [ {id:"AG_Topo", relX:50, relY:10, type:"minor"}, {id:"AG_EloE", relX:30, relY:30, type:"minor"}, {id:"AG_EloD", relX:70, relY:30, type:"minor"}, {id:"AG_CorpoSE", relX:20, relY:60, type:"major"}, {id:"AG_CorpoSD", relX:80, relY:60, type:"major"}, {id:"AG_CorpoIE", relX:30, relY:100, type:"major"}, {id:"AG_CorpoID", relX:70, relY:100, type:"major"}, {id:"AG_Joia", relX:50, relY:70, type: "giant"} ],
+            connections: [ [0,1],[0,2],[1,3],[2,4],[3,5],[4,6],[5,6],[7,3],[7,4],[7,5],[7,6] ], entryPointId: "AG_CorpoIE", exitPointId: "AG_Topo"
+        },
+        "Berrante da Bravura": {
+            name: "Berrante da Bravura", category: "Item",
+            stars: [ {id:"BB_Bocal", relX:10, relY:60, type:"major"}, {id:"BB_Curva1", relX:30, relY:70, type:"minor"}, {id:"BB_Curva2", relX:60, relY:60, type:"major"}, {id:"BB_Curva3", relX:80, relY:40, type:"minor"}, {id:"BB_Abertura", relX:100, relY:20, type:"giant"} ],
+            connections: [ [0,1],[1,2],[2,3],[3,4] ], entryPointId: "BB_Bocal", exitPointId: "BB_Abertura"
+        },
+        "Olho Onisciente": {
+            name: "Olho Onisciente", category: "Magic",
+            stars: [ {id:"OO_Pupila", relX:50, relY:50, type:"giant"}, {id:"OO_IrisN", relX:50, relY:20, type:"major"}, {id:"OO_IrisS", relX:50, relY:80, type:"major"}, {id:"OO_IrisL", relX:20, relY:50, type:"major"}, {id:"OO_IrisO", relX:80, relY:50, type:"major"}, {id:"OO_PalpSup", relX:50, relY:0, type:"minor"}, {id:"OO_PalpInf", relX:50, relY:100, type:"minor"} ],
+            connections: [ [0,1],[0,2],[0,3],[0,4],[1,3],[1,4],[2,3],[2,4],[1,5],[2,6],[3,5],[3,6],[4,5],[4,6] ], entryPointId: "OO_PalpInf", exitPointId: "OO_PalpSup"
+        },
+        "Mão Espectral": {
+            name: "Mão Espectral", category: "Magic",
+            stars: [ {id:"ME_Pulso", relX:50, relY:120, type:"major"}, {id:"ME_Palma", relX:50, relY:90, type:"giant"}, {id:"ME_Dedo1", relX:20, relY:60, type:"minor"}, {id:"ME_Dedo2", relX:40, relY:40, type:"minor"}, {id:"ME_Dedo3", relX:60, relY:40, type:"minor"}, {id:"ME_Dedo4", relX:80, relY:60, type:"minor"}, {id:"ME_Polegar", relX:10, relY:90, type:"minor"} ],
+            connections: [ [0,1],[1,2],[1,3],[1,4],[1,5],[1,6] ], entryPointId: "ME_Pulso", exitPointId: "ME_Dedo3"
+        },
+        "Vórtice Arcano": { // Espiral simples
+            name: "Vórtice Arcano", category: "Magic",
+            stars: [ {id:"VA_Ext", relX:10, relY:50, type:"major"}, {id:"VA_C1", relX:30, relY:20, type:"minor"}, {id:"VA_C2", relX:70, relY:30, type:"major"}, {id:"VA_C3", relX:80, relY:70, type:"minor"}, {id:"VA_C4", relX:50, relY:80, type:"major"}, {id:"VA_Nucleo", relX:45, relY:50, type:"giant"} ],
+            connections: [ [0,1],[1,2],[2,3],[3,4],[4,5],[5,0] ], entryPointId: "VA_Ext", exitPointId: "VA_Nucleo"
+        },
+        "Pena Alada": {
+            name: "Pena Alada", category: "Item", // Ou Magic
+            stars: [ {id:"PA_Base", relX:20, relY:100, type:"minor"}, {id:"PA_HasteC", relX:30, relY:60, type:"major"}, {id:"PA_Ponta", relX:40, relY:10, type:"minor"}, {id:"PA_AsaInt", relX:60, relY:50, type:"giant"}, {id:"PA_AsaExt", relX:90, relY:40, type:"major"} ],
+            connections: [ [0,1],[1,2],[1,3],[3,4] ], entryPointId: "PA_Base", exitPointId: "PA_Ponta"
+        },
+        "Coroa Imperial": {
+            name: "Coroa Imperial", category: "Item",
+            stars: [ {id:"CI_BaseE", relX:10, relY:80, type:"major"}, {id:"CI_BaseD", relX:90, relY:80, type:"major"}, {id:"CI_PontaE", relX:20, relY:20, type:"minor"}, {id:"CI_PontaC", relX:50, relY:0, type:"giant"}, {id:"CI_PontaD", relX:80, relY:20, type:"minor"}, {id:"CI_JoiaE", relX:35, relY:50, type:"major"}, {id:"CI_JoiaD", relX:65, relY:50, type:"major"} ],
+            connections: [ [0,1],[0,2],[0,5],[1,4],[1,6],[2,3],[3,4],[2,5],[4,6],[5,3],[6,3] ], entryPointId: "CI_BaseE", exitPointId: "CI_PontaC"
+        },
+        "Serpente Estelar": {
+            name: "Serpente Estelar", category: "Creature",
+            stars: [ {id:"SE_Cauda", relX:10, relY:100, type:"minor"}, {id:"SE_C1", relX:30, relY:80, type:"major"}, {id:"SE_C2", relX:60, relY:100, type:"minor"}, {id:"SE_C3", relX:80, relY:70, type:"major"}, {id:"SE_Pescoco", relX:60, relY:40, type:"minor"}, {id:"SE_Cabeca", relX:50, relY:10, type:"giant"} ],
+            connections: [ [0,1],[1,2],[2,3],[3,4],[4,5] ], entryPointId: "SE_Cauda", exitPointId: "SE_Cabeca"
+        },
+        "Garra Dracônica": {
+            name: "Garra Dracônica", category: "Creature",
+            stars: [ {id:"GD_Pulso", relX:50, relY:100, type:"major"}, {id:"GD_Palma", relX:50, relY:70, type:"giant"}, {id:"GD_DedoE", relX:20, relY:30, type:"major"}, {id:"GD_DedoC", relX:50, relY:10, type:"major"}, {id:"GD_DedoD", relX:80, relY:30, type:"major"} ],
+            connections: [ [0,1],[1,2],[1,3],[1,4] ], entryPointId: "GD_Pulso", exitPointId: "GD_DedoC"
+        },
+        "Asas da Fênix": {
+            name: "Asas da Fênix", category: "Creature",
+            stars: [ {id:"AF_Centro", relX:50, relY:70, type:"giant"}, {id:"AF_AsaESup", relX:20, relY:30, type:"major"}, {id:"AF_AsaEInf", relX:10, relY:80, type:"minor"}, {id:"AF_AsaDSup", relX:80, relY:30, type:"major"}, {id:"AF_AsaDInf", relX:90, relY:80, type:"minor"} ],
+            connections: [ [0,1],[0,2],[0,3],[0,4],[1,2],[3,4] ], entryPointId: "AF_Centro", exitPointId: "AF_AsaESup" // Ou DSup
+        }
+      };
+
+      const constellationDefinitions = {
+        "PontoInicial": { name: "Nexus Central", stars: [{ id: "StartNexus", relX: 50, relY: 50, type: "nexus" }], layout: { offsetX: vbW / 2 - 25, offsetY: vbH / 2 - 25, scale: 1 }, connections: [], entryPointId: "StartNexus", exitPointId: "StartNexus", category: "Hub" },
+        ...handcraftedConstellations
+      };
+
+      // Todas as constelações principais são agora artesanais
+      let constelNames = Object.keys(handcraftedConstellations);
+      // Embaralhar para que a ordem no círculo seja aleatória
+      for (let i = constelNames.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [constelNames[i], constelNames[j]] = [constelNames[j], constelNames[i]];
+      }
+      const numMainConstellations = constelNames.length; // Deve ser 20
+
+      console.log("--- Generating Nodes ---");
+      // ... (o restante do código para gerar nós, mini-constelações, links, UI, etc., permanece o mesmo da versão anterior)
+      // A única diferença é que não haverá mais o `rpgThemesPool` para constelações principais.
+
+      const hubNodeDef = constellationDefinitions["PontoInicial"];
+      const hubGlobalId = globalNodeIdCounter++;
+      const hubX = hubNodeDef.layout.offsetX + hubNodeDef.stars[0].relX * hubNodeDef.layout.scale;
+      const hubY = hubNodeDef.layout.offsetY + hubNodeDef.stars[0].relY * hubNodeDef.layout.scale;
+      allNodes.push({ id: hubGlobalId, name: hubNodeDef.stars[0].id, constellation: "PontoInicial", x: hubX, y: hubY, type: hubNodeDef.stars[0].type, el: null, connections: new Set() });
+      nodeIdToInternalIdMap.set(hubGlobalId, { constellationName: "PontoInicial", starId: hubNodeDef.stars[0].id });
+
+      const mainCircleRadius = vbW * 0.43;
+
+      constelNames.forEach((constelName, idx) => {
+        const constelDef = constellationDefinitions[constelName];
+        if (!constelDef || !constelDef.stars || constelDef.stars.length === 0) {
+            console.warn(`Constelação "${constelName}" pulada.`); return;
         }
 
-        if(ringIdx > 0){
-          const numNodesInPreviousRing = ringCfg[ringIdx-1];
-          // O anel anterior começa em 'nodesProcessedSoFar' menos 'numNodesInPreviousRing'
-          const previousRingActualStartIndex = nodesProcessedSoFar - numNodesInPreviousRing;
-          
-          const previousRingNodes = allNodes.slice(previousRingActualStartIndex, previousRingActualStartIndex + numNodesInPreviousRing);
-          // console.log(`Ring ${ringIdx}: PrevRingStartIdx=${previousRingActualStartIndex}, NumInPrevRing=${numNodesInPreviousRing}, PrevNodes:`, previousRingNodes.map(n=>n.id));
+        const angle = (idx / numMainConstellations) * 2 * Math.PI + (Math.PI / numMainConstellations);
+        const mainConstelAnchorX = hubX + mainCircleRadius * Math.cos(angle);
+        const mainConstelAnchorY = hubY + mainCircleRadius * Math.sin(angle);
+        let previousNodeIdInArm = hubGlobalId;
 
-          createdInRing.forEach((childNode, childIdxInRing) => {
-            let parentNodeIndexInPreviousRing = Math.floor((childIdxInRing / nodesInRing) * numNodesInPreviousRing);
-            parentNodeIndexInPreviousRing = Math.max(0,Math.min(parentNodeIndexInPreviousRing, previousRingNodes.length-1));
-            const parentNode = previousRingNodes[parentNodeIndexInPreviousRing];
+        const miniConstelDistFactor = 0.45;
+        const miniAnchorX = hubX + (mainConstelAnchorX - hubX) * miniConstelDistFactor;
+        const miniAnchorY = hubY + (mainConstelAnchorY - hubY) * miniConstelDistFactor;
+        const miniConstelIdBase = `MiniCluster_${idx}`;
+        const numMiniStars = Math.floor(Math.random() * 2) + 2;
+        const miniStarsData = [];
+        const miniSpread = 40;
 
-            if(parentNode){
-              parentNode.connections.add(childNode.id);
-              childNode.connections.add(parentNode.id);
-              // console.log(`DEBUG Connection: Node ${parentNode.id} (from previous ring) <-> Node ${childNode.id} (current ring)`);
-              const l = document.createElementNS(SVG_NS,'line');
-              l.setAttribute('class','skill-link');
-              l.setAttribute('x1',parentNode.x.toFixed(1)); l.setAttribute('y1',parentNode.y.toFixed(1));
-              l.setAttribute('x2',childNode.x.toFixed(1)); l.setAttribute('y2',childNode.y.toFixed(1));
-              skillTreeSvg.appendChild(l);
-            } else {
-                console.warn(`WARN: Parent node not found for child ${childNode.id} in ring ${ringIdx}. PrevRingNodes count: ${previousRingNodes.length}, Calculated index: ${parentNodeIndexInPreviousRing}`);
+        for (let k = 0; k < numMiniStars; k++) {
+            miniStarsData.push({
+                id: `${miniConstelIdBase}_Star${k}`,
+                relX: (Math.random() - 0.5) * miniSpread,
+                relY: (Math.random() - 0.5) * miniSpread,
+                type: "cluster"
+            });
+        }
+        const miniConnections = [];
+        if (numMiniStars === 2) miniConnections.push([0,1]);
+        if (numMiniStars === 3) miniConnections.push([0,1], [1,2], [2,0]);
+
+        const miniInternalIdToGlobalId = new Map();
+        miniStarsData.forEach(starData => {
+            const globalId = globalNodeIdCounter++;
+            miniInternalIdToGlobalId.set(starData.id, globalId);
+            allNodes.push({
+                id: globalId, name: starData.id, constellation: miniConstelIdBase,
+                x: miniAnchorX + starData.relX, y: miniAnchorY + starData.relY,
+                type: starData.type, el: null, connections: new Set()
+            });
+            nodeIdToInternalIdMap.set(globalId, { constellationName: miniConstelIdBase, starId: starData.id });
+        });
+
+        miniConnections.forEach(pair => {
+            const id1 = miniInternalIdToGlobalId.get(miniStarsData[pair[0]].id);
+            const id2 = miniInternalIdToGlobalId.get(miniStarsData[pair[1]].id);
+            const node1 = allNodes.find(n=>n.id===id1), node2 = allNodes.find(n=>n.id===id2);
+            if(node1 && node2) { node1.connections.add(id2); node2.connections.add(id1); }
+        });
+
+        const firstMiniStarGlobalId = miniInternalIdToGlobalId.get(miniStarsData[0].id);
+        const hubN = allNodes.find(n=>n.id===previousNodeIdInArm);
+        const firstMiniN = allNodes.find(n=>n.id===firstMiniStarGlobalId);
+        if(hubN && firstMiniN) { hubN.connections.add(firstMiniStarGlobalId); firstMiniN.connections.add(previousNodeIdInArm); }
+
+        previousNodeIdInArm = miniInternalIdToGlobalId.get(miniStarsData[miniStarsData.length -1].id);
+
+        const constelScale = 1.0 + Math.random() * 0.2;
+        let minRelX = Infinity, maxRelX = -Infinity, minRelY = Infinity, maxRelY = -Infinity;
+        constelDef.stars.forEach(s => {
+            minRelX = Math.min(minRelX, s.relX); maxRelX = Math.max(maxRelX, s.relX);
+            minRelY = Math.min(minRelY, s.relY); maxRelY = Math.max(maxRelY, s.relY);
+        });
+        const constelContentWidth = (maxRelX - minRelX) || 50;
+        const constelContentHeight = (maxRelY - minRelY) || 50;
+
+        const constelOffsetX = mainConstelAnchorX - (minRelX * constelScale + (constelContentWidth * constelScale / 2));
+        const constelOffsetY = mainConstelAnchorY - (minRelY * constelScale + (constelContentHeight * constelScale / 2));
+
+        constelDef.layout = { offsetX: constelOffsetX, offsetY: constelOffsetY, scale: constelScale };
+        const internalIdToGlobalId = new Map();
+
+        constelDef.stars.forEach(starData => {
+          const globalId = globalNodeIdCounter++;
+          internalIdToGlobalId.set(starData.id, globalId);
+          nodeIdToInternalIdMap.set(globalId, { constellationName: constelName, starId: starData.id });
+          allNodes.push({ id: globalId, name: starData.id, constellation: constelName, x: constelDef.layout.offsetX + starData.relX * constelDef.layout.scale, y: constelDef.layout.offsetY + starData.relY * constelDef.layout.scale, type: starData.type, el: null, connections: new Set() });
+        });
+
+        if (constelDef.entryPointId) {
+            const entryPointGlobalId = internalIdToGlobalId.get(constelDef.entryPointId);
+            const lastMiniN = allNodes.find(n=>n.id===previousNodeIdInArm);
+            const entryPointN = allNodes.find(n => n.id === entryPointGlobalId);
+            if (lastMiniN && entryPointN) {
+                lastMiniN.connections.add(entryPointGlobalId); entryPointN.connections.add(previousNodeIdInArm);
             }
-          });
         }
-        nodesProcessedSoFar += nodesInRing; // Atualiza o contador de nós processados
-      });
-      console.log("--- Node Data Generation Complete ---");
-      // DEBUG: Verificar conexões do nó 1 (deve incluir 0)
-      // const node1 = allNodes.find(n => n.id === 1);
-      // if (node1) console.log("DEBUG: Node 1 connections:", Array.from(node1.connections));
-      // else console.log("DEBUG: Node 1 not found");
 
+        constelDef.connections.forEach(pair => {
+          if (pair[0] >= constelDef.stars.length || pair[1] >= constelDef.stars.length) {return;}
+          const id1 = internalIdToGlobalId.get(constelDef.stars[pair[0]].id);
+          const id2 = internalIdToGlobalId.get(constelDef.stars[pair[1]].id);
+          const node1 = allNodes.find(n => n.id === id1), node2 = allNodes.find(n => n.id === id2);
+          if (node1 && node2) { node1.connections.add(id2); node2.connections.add(id1); }
+        });
+      });
+
+      console.log("--- Creating Inter-Constellation Links (Lateral) ---");
+      for (let i = 0; i < numMainConstellations; i++) {
+          const currentConstelName = constelNames[i];
+          const nextConstelName = constelNames[(i + 1) % numMainConstellations];
+          const currentConstelDef = constellationDefinitions[currentConstelName];
+          const nextConstelDef = constellationDefinitions[nextConstelName];
+
+          if (currentConstelDef && nextConstelDef && currentConstelDef.exitPointId && nextConstelDef.entryPointId &&
+              currentConstelDef.stars && currentConstelDef.stars.length > 0 &&
+              nextConstelDef.stars && nextConstelDef.stars.length > 0) {
+              const exitNode = allNodes.find(n => n.constellation === currentConstelName && n.name === currentConstelDef.exitPointId);
+              const entryNodeNext = allNodes.find(n => n.constellation === nextConstelName && n.name === nextConstelDef.entryPointId);
+              if (exitNode && entryNodeNext) {
+                  exitNode.connections.add(entryNodeNext.id);
+                  entryNodeNext.connections.add(exitNode.id);
+              }
+          }
+      }
+
+      console.log("--- Creating Hub Shortcut Links ---");
+      const numShortcuts = Math.min(2, Math.floor(numMainConstellations / 8)); // Ainda menos atalhos
+      const hubNodeForShortcut = allNodes.find(n => n.id === hubGlobalId); // Renomeado para evitar conflito
+      if (hubNodeForShortcut) {
+        let createdShortcuts = 0;
+        let availableTargets = allNodes.filter(n =>
+            n.id !== hubGlobalId && !hubNodeForShortcut.connections.has(n.id) && n.constellation !== "PontoInicial" &&
+            !(constellationDefinitions[n.constellation] && n.name === constellationDefinitions[n.constellation].entryPointId &&
+              allNodes.some(m => m.constellation.startsWith("MiniCluster") && hubNodeForShortcut.connections.has(m.id) && m.connections.has(n.id)) )
+        );
+        availableTargets.sort(() => 0.5 - Math.random());
+
+        for (let targetNode of availableTargets) {
+            if (createdShortcuts >= numShortcuts) break;
+            if (targetNode.constellation.startsWith("MiniCluster_")) {
+                const firstStarOfThisMini = allNodes.find(m => m.constellation === targetNode.constellation && m.name.endsWith("_Star0"));
+                if (firstStarOfThisMini && hubNodeForShortcut.connections.has(firstStarOfThisMini.id)) continue;
+            }
+            hubNodeForShortcut.connections.add(targetNode.id);
+            targetNode.connections.add(hubNodeForShortcut.id);
+            createdShortcuts++;
+        }
+      }
+
+      const drawnLinks = new Set();
+      allNodes.forEach(node1 => {
+        node1.connections.forEach(node2Id => {
+            const node2 = allNodes.find(n => n.id === node2Id);
+            const linkIdForward = `${node1.id}-${node2Id}`;
+            const linkIdBackward = `${node2Id}-${node1.id}`;
+
+            if (node2 && !drawnLinks.has(linkIdForward) && !drawnLinks.has(linkIdBackward)) {
+                let color = "#7040c0", dash = "", width = "1.5px";
+                const def1 = constellationDefinitions[node1.constellation];
+                const def2 = constellationDefinitions[node2.constellation];
+
+                if ((node1.constellation === "PontoInicial" && node2.constellation.startsWith("MiniCluster_")) ||
+                    (node2.constellation === "PontoInicial" && node1.constellation.startsWith("MiniCluster_")) ||
+                    (node1.constellation.startsWith("MiniCluster_") && def2 && node2.name === def2.entryPointId) ||
+                    (node2.constellation.startsWith("MiniCluster_") && def1 && node1.name === def1.entryPointId) ) {
+                    color = "#9070a0"; dash = "4,2"; width = "1.8px";
+                }
+                else if (node1.constellation.startsWith("MiniCluster_") && node1.constellation === node2.constellation) {
+                    color = "#8080c0"; width = "1.2px";
+                }
+                else if (def1 && def2 && def1.category !== "Hub" && def2.category !== "Hub" &&
+                           !node1.constellation.startsWith("MiniCluster_") && !node2.constellation.startsWith("MiniCluster_") &&
+                           node1.constellation !== node2.constellation &&
+                           ( (node1.name === def1.exitPointId && node2.name === def2.entryPointId) ||
+                             (node2.name === def2.exitPointId && node1.name === def1.entryPointId) ) ) {
+                    color = "#40a070"; dash = "7,3"; width = "2.5px";
+                }
+                else if ( (node1.id === hubGlobalId && !node2.constellation.startsWith("MiniCluster_") && (!def2 || node2.name !== def2.entryPointId)) ||
+                          (node2.id === hubGlobalId && !node1.constellation.startsWith("MiniCluster_") && (!def1 || node1.name !== def1.entryPointId)) ||
+                          (node1.id === hubGlobalId && node2.constellation.startsWith("MiniCluster_") && !allNodes.find(m => m.id === hubGlobalId && m.connections.has(allNodes.find(s => s.constellation === node2.constellation && s.name.endsWith("_Star0"))?.id))) ||
+                          (node2.id === hubGlobalId && node1.constellation.startsWith("MiniCluster_") && !allNodes.find(m => m.id === hubGlobalId && m.connections.has(allNodes.find(s => s.constellation === node1.constellation && s.name.endsWith("_Star0"))?.id)))
+                        ) {
+                     let isMainPathLink = false;
+                     if(node1.id === hubGlobalId && node2.constellation.startsWith("MiniCluster_")) {
+                        const firstStar = allNodes.find(s => s.constellation === node2.constellation && s.name.endsWith("_Star0"));
+                        if (firstStar && allNodes.find(h => h.id === hubGlobalId).connections.has(firstStar.id)) isMainPathLink = true;
+                     }
+                     if(node2.id === hubGlobalId && node1.constellation.startsWith("MiniCluster_")) {
+                        const firstStar = allNodes.find(s => s.constellation === node1.constellation && s.name.endsWith("_Star0"));
+                        if (firstStar && allNodes.find(h => h.id === hubGlobalId).connections.has(firstStar.id)) isMainPathLink = true;
+                     }
+
+                    if (!isMainPathLink) {
+                        color = "#d030d0"; dash = "1,4"; width = "1.5px";
+                    }
+                }
+                drawLink(node1, node2, color, dash, width);
+                drawnLinks.add(linkIdForward);
+            }
+        });
+      });
+
+      console.log("--- Generating Background Dust Stars ---");
+      const numBackgroundDustStars = 400;
+      const dustStarsContainer = document.createElementNS(SVG_NS, 'g');
+      skillTreeSvg.insertBefore(dustStarsContainer, skillTreeSvg.firstChild);
+      for (let i = 0; i < numBackgroundDustStars; i++) {
+          const dustStar = document.createElementNS(SVG_NS, 'circle');
+          dustStar.setAttribute('cx', (Math.random() * vbW).toFixed(1));
+          dustStar.setAttribute('cy', (Math.random() * vbH).toFixed(1));
+          dustStar.setAttribute('r', (Math.random() * 1.0 + 0.2).toFixed(1));
+          dustStar.setAttribute('fill', '#FFFFFF');
+          dustStar.setAttribute('opacity', (Math.random() * 0.20 + 0.03).toFixed(2));
+          dustStar.classList.add('dust-star');
+          dustStarsContainer.appendChild(dustStar);
+      }
+
+      function drawLink(node1, node2, strokeColor = "#7040c0", strokeDasharray = "", strokeWidth = "1.5") {
+          const l = document.createElementNS(SVG_NS,'line');
+          l.setAttribute('class','skill-link');
+          l.setAttribute('x1',node1.x.toFixed(1)); l.setAttribute('y1',node1.y.toFixed(1));
+          l.setAttribute('x2',node2.x.toFixed(1)); l.setAttribute('y2',node2.y.toFixed(1));
+          l.style.stroke = strokeColor;
+          l.style.strokeWidth = strokeWidth;
+          if (strokeDasharray) l.style.strokeDasharray = strokeDasharray;
+          skillTreeSvg.appendChild(l);
+      }
+      console.log("--- Node Generation Complete ---");
 
       const tentative = new Set(), confirmed = new Set();
+      const startNode = allNodes.find(n => n.id === hubGlobalId);
+      if (startNode) { confirmed.add(startNode.id); }
+
       allNodes.forEach(node => {
         const c = document.createElementNS(SVG_NS,'circle');
-        c.setAttribute('class','skill-node');
+        c.setAttribute('class',`skill-node type-${node.type}`);
+        if (node.id === startNode?.id) c.classList.add('node-start');
         c.setAttribute('cx',node.x.toFixed(1)); c.setAttribute('cy',node.y.toFixed(1));
-        c.dataset.nodeId = node.id; node.el = c;
-        if(node.id === 0){
-          c.classList.add('node-center');
-          confirmed.add(0);
-          console.log("Node 0 (center) added to confirmed set. Confirmed set:", Array.from(confirmed));
+        c.dataset.nodeId = node.id; node.el = c; nodeElements.set(node.id, c);
+
+        const title = document.createElementNS(SVG_NS, 'title');
+        let nodeDisplayName = node.name;
+         if (node.constellation === "PontoInicial") {
+            nodeDisplayName = "Nexus Central";
+        } else if (node.constellation.startsWith("MiniCluster_")) {
+            const clusterNum = node.constellation.split('_')[1];
+            nodeDisplayName = `Aglomerado Estelar ${String.fromCharCode(65 + parseInt(clusterNum))} - Ponto ${node.name.split('Star')[1]}`;
         } else {
-          c.addEventListener('click', (e) => { e.stopPropagation(); handleNodeClick(node); });
+            // Para constelações artesanais, o node.name já é o ID da estrela (ex: GP_T)
+            // Podemos tentar deixar mais legível
+            let starNamePart = node.name.split('_').slice(1).join(' ') || node.name;
+            if (starNamePart.match(/^[A-Z]+$/)) { // Se for só as iniciais, como GP_T
+                starNamePart = node.name; // Mantém o ID curto
+            }
+            nodeDisplayName = `${node.constellation} - ${starNamePart}`;
         }
+        title.textContent = nodeDisplayName;
+        c.appendChild(title);
+
+        if (node.id !== startNode?.id) c.addEventListener('click', (e) => { e.stopPropagation(); handleNodeClick(node); });
         skillTreeSvg.appendChild(c);
       });
 
-      const decPointsBtn = document.getElementById('decreasePointsBtn');
-      const incPointsBtn = document.getElementById('increasePointsBtn');
-      const pointsDisplay = document.getElementById('currentPointsDisplay');
-      const maxPointsLabel = document.getElementById('maxPointsLabel');
+      const decPointsBtn = document.getElementById('decreasePointsBtn'), incPointsBtn = document.getElementById('increasePointsBtn');
+      const pointsDisplay = document.getElementById('currentPointsDisplay'), maxPointsLabel = document.getElementById('maxPointsLabel');
       const confirmBtn = document.getElementById('confirmButton');
 
       function isNodeUnlockable(nodeId) {
-        // console.log(`isNodeUnlockable CALLED FOR NODE ${nodeId}`);
-        if (nodeId === 0) { /*console.log(` -> Node ${nodeId} is center, returning true.`);*/ return true; }
-        if (confirmed.has(nodeId)) { /*console.log(` -> Node ${nodeId} is already in CONFIRMED, returning true.`);*/ return true; }
-        if (tentative.has(nodeId)) { /*console.log(` -> Node ${nodeId} is already in TENTATIVE, returning true.`);*/ return true; }
-
-        const node = allNodes.find(n => n.id === nodeId);
-        if (!node) { console.error(` -> Node ${nodeId} NOT FOUND in allNodes!`); return false; }
-        // console.log(` -> Node ${nodeId} connections: ${Array.from(node.connections)}. Checking against CONFIRMED: ${Array.from(confirmed)}`);
-        for (const connectedNodeId of node.connections) {
-          // console.log(`    -> Checking connection: ${connectedNodeId}. Is it in CONFIRMED? ${confirmed.has(connectedNodeId)}`);
-          if (confirmed.has(connectedNodeId)) {
-            // console.log(`    -> YES! Node ${nodeId} IS UNLOCKABLE via confirmed node ${connectedNodeId}.`);
-            return true;
-          }
+        const targetNode = allNodes.find(n => n.id === nodeId);
+        if (!targetNode) return false;
+        if (targetNode.id === startNode?.id) return true;
+        if (confirmed.has(nodeId) || tentative.has(nodeId)) return true;
+        for (const connectedNodeId of targetNode.connections) {
+          if (confirmed.has(connectedNodeId) || tentative.has(connectedNodeId)) return true;
         }
-        // console.log(` -> Node ${nodeId} IS NOT UNLOCKABLE (no confirmed connections found).`);
         return false;
       }
 
       function updateNodeAvailability() {
         allNodes.forEach(node => {
-          if (node.id === 0) return;
+          if (node.id === startNode?.id) return;
           const unlockable = isNodeUnlockable(node.id);
-          
+          const el = nodeElements.get(node.id); if (!el) return;
+          el.classList.remove('unavailable', 'cannot-afford');
           if (unlockable) {
-            node.el.classList.remove('unavailable');
             if (pointsSpentOnTree + tentative.size >= maxTotalPoints && !tentative.has(node.id) && !confirmed.has(node.id)) {
-                 node.el.classList.add('cannot-afford');
-            } else {
-                 node.el.classList.remove('cannot-afford');
+                 el.classList.add('cannot-afford');
             }
           } else {
-            node.el.classList.add('unavailable');
-            node.el.classList.remove('cannot-afford');
+            el.classList.add('unavailable');
           }
         });
       }
 
       function updatePointsUI() {
-        // console.log(`--- updatePointsUI ---`);
-        // console.log(`  Spendable: ${currentSpendablePoints}, MaxTotal: ${maxTotalPoints}, Spent: ${pointsSpentOnTree}, Tentative: ${tentative.size}`);
-        pointsDisplay.textContent = currentSpendablePoints;
-        maxPointsLabel.textContent = `/ ${maxTotalPoints}`;
-        decPointsBtn.disabled = currentSpendablePoints <= 0;
-        incPointsBtn.disabled = currentSpendablePoints >= maxTotalPoints;
-        
-        let canAffordToConfirmTentatives = currentSpendablePoints >= tentative.size;
-        confirmBtn.disabled = tentative.size === 0 || !canAffordToConfirmTentatives;
-        // console.log(`  ConfirmBtn disabled: ${confirmBtn.disabled} (Tentatives: ${tentative.size}, CanAffordConfirm: ${canAffordToConfirmTentatives})`);
-        // console.log(`--- calling updateNodeAvailability from updatePointsUI ---`);
+        pointsDisplay.textContent = currentSpendablePoints; maxPointsLabel.textContent = `/ ${maxTotalPoints}`;
+        decPointsBtn.disabled = currentSpendablePoints <= 0; incPointsBtn.disabled = currentSpendablePoints >= maxTotalPoints;
+        confirmBtn.disabled = tentative.size === 0 || (currentSpendablePoints < tentative.size);
         updateNodeAvailability();
-        // console.log(`--- updatePointsUI END ---`);
       }
-
       decPointsBtn.addEventListener('click', () => { if (currentSpendablePoints > 0) { currentSpendablePoints--; updatePointsUI(); }});
       incPointsBtn.addEventListener('click', () => { if (currentSpendablePoints < maxTotalPoints) { currentSpendablePoints++; updatePointsUI(); }});
 
       function handleNodeClick(node) {
-        // console.log(`--- handleNodeClick for NODE ${node.id} ---`);
-        // console.log(`  Initial state - Confirmed: ${confirmed.has(node.id)}, Tentative: ${tentative.has(node.id)}`);
-        // console.log(`  Current points - Spendable: ${currentSpendablePoints}, MaxTotal: ${maxTotalPoints}, Spent: ${pointsSpentOnTree}, TentativeSetSize: ${tentative.size}`);
-
-        if (node.id === 0) { /*console.log("  Clicked on center node, no action.");*/ return; }
-
-        let unlockable = isNodeUnlockable(node.id);
-        // console.log(`  Result of isNodeUnlockable(${node.id}) for click action: ${unlockable}`);
+        if (node.id === startNode?.id) return;
+        const el = nodeElements.get(node.id); if (!el) return;
 
         if (confirmed.has(node.id)) {
-          confirmed.delete(node.id); node.el.classList.remove('confirmed');
-          pointsSpentOnTree--; maxTotalPoints++; currentSpendablePoints++;
-          // console.log(`  Node ${node.id} UNCONFIRMED.`);
+          return;
         } else if (tentative.has(node.id)) {
-          tentative.delete(node.id); node.el.classList.remove('tentative');
-          // console.log(`  Node ${node.id} UNTENTATIVE.`);
-        } else { 
-          // console.log(`  Attempting to set Node ${node.id} to TENTATIVE.`);
-          if (unlockable) { 
-            if (pointsSpentOnTree + tentative.size < maxTotalPoints) {
-               tentative.add(node.id); node.el.classList.add('tentative');
-               // console.log(`  Node ${node.id} SUCCESSFULLY set to TENTATIVE.`);
-            } else {
-              // console.log(`  Node ${node.id} REJECTED for tentative (maxTotalPoints limit).`);
-            }
-          } else { 
-            // console.log(`  Node ${node.id} REJECTED for tentative (NOT UNLOCKABLE).`);
+          tentative.delete(node.id); el.classList.remove('tentative');
+        } else {
+          if (isNodeUnlockable(node.id) && (pointsSpentOnTree + tentative.size < maxTotalPoints)) {
+             tentative.add(node.id); el.classList.add('tentative');
           }
         }
-        // console.log(`--- calling updatePointsUI from handleNodeClick for NODE ${node.id} ---`);
         updatePointsUI();
-        // console.log(`--- handleNodeClick for NODE ${node.id} END ---`);
       }
-      
+
       confirmBtn.addEventListener('click', () => {
-        // console.log(`--- confirmBtn CLICK ---`);
-        // console.log(`  Spendable: ${currentSpendablePoints}, Tentative.size: ${tentative.size}`);
         if (currentSpendablePoints >= tentative.size && tentative.size > 0) {
-          let pointsBeingConfirmed = 0;
-          const nodesToConfirmNow = Array.from(tentative); 
-          
-          nodesToConfirmNow.forEach(id => {
-            if (currentSpendablePoints > pointsBeingConfirmed) { 
+          let ptsConfirmedThisRound = 0;
+          Array.from(tentative).forEach(id => {
+            if (currentSpendablePoints - ptsConfirmedThisRound > 0) {
                 confirmed.add(id);
-                const n = allNodes.find(nd => nd.id === id);
-                if (n && n.el) { n.el.classList.remove('tentative'); n.el.classList.add('confirmed'); }
-                pointsBeingConfirmed++;
+                const nodeElement = nodeElements.get(id);
+                if (nodeElement) {
+                    nodeElement.classList.remove('tentative');
+                    nodeElement.classList.add('confirmed');
+                }
+                ptsConfirmedThisRound++;
             }
           });
-
-          currentSpendablePoints -= pointsBeingConfirmed;
-          pointsSpentOnTree += pointsBeingConfirmed;
-          maxTotalPoints -= pointsBeingConfirmed; 
-          
-          // console.log(`  CONFIRMED ${pointsBeingConfirmed} nodes. Spent: ${pointsSpentOnTree}, Spendable: ${currentSpendablePoints}, MaxTotal: ${maxTotalPoints}`);
-          tentative.clear(); 
+          currentSpendablePoints -= ptsConfirmedThisRound;
+          pointsSpentOnTree += ptsConfirmedThisRound;
+          tentative.clear();
           updatePointsUI();
-        } else {
-            // console.log("  CONFIRM_BTN_REJECT: Not enough spendable points or no tentative nodes.");
         }
-        // console.log(`--- confirmBtn CLICK END ---`);
       });
-      
-      // console.log("--- Initial updatePointsUI call ---");
-      updatePointsUI();
 
+      updatePointsUI();
       let isPanning = false; let lastPanX, lastPanY;
-      skillTreeSvg.addEventListener('wheel', e => { e.preventDefault(); const zI=0.1,sD=e.deltaY<0?1:-1;const p=svgPt(e,skillTreeSvg,vbX,vbY,vbW,vbH);const nW=vbW*(1-sD*zI),nH=vbH*(1-sD*zI);if(nW<50||nW>10000)return;vbX=p.x-(p.x-vbX)*(nW/vbW);vbY=p.y-(p.y-vbY)*(nH/vbH);vbW=nW;vbH=nH;skillTreeSvg.setAttribute('viewBox',`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`); });
-      skillTreeSvg.addEventListener('mousedown', e => { if(e.target===skillTreeSvg){isPanning=true;const cP=getClientCoords(e);lastPanX=cP.x;lastPanY=cP.y;skillTreeSvg.style.cursor='grabbing';}});
+      skillTreeSvg.addEventListener('wheel', e => { e.preventDefault(); const zI=0.1,sD=e.deltaY<0?1:-1;const p=svgPt(e,skillTreeSvg,vbX,vbY,vbW,vbH);const nW=vbW*(1-sD*zI),nH=vbH*(1-sD*zI);if(nW<100||nW>60000)return; vbX=p.x-(p.x-vbX)*(nW/vbW);vbY=p.y-(p.y-vbY)*(nH/vbH);vbW=nW;vbH=nH;skillTreeSvg.setAttribute('viewBox',`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`); });
+      skillTreeSvg.addEventListener('mousedown', e => { if(e.target===skillTreeSvg || e.target.tagName === 'line' || e.target.classList.contains('dust-star') ){isPanning=true;const cP=getClientCoords(e);lastPanX=cP.x;lastPanY=cP.y;skillTreeSvg.style.cursor='grabbing';}});
       document.addEventListener('mousemove', e => { if(!isPanning)return;const cP=getClientCoords(e);const dX=cP.x-lastPanX,dY=cP.y-lastPanY;const scale=vbW/skillTreeSvg.getBoundingClientRect().width;vbX-=dX*scale;vbY-=dY*scale;skillTreeSvg.setAttribute('viewBox',`${vbX.toFixed(1)} ${vbY.toFixed(1)} ${vbW.toFixed(1)} ${vbH.toFixed(1)}`);lastPanX=cP.x;lastPanY=cP.y;});
       document.addEventListener('mouseup', () => { if(isPanning){isPanning=false;skillTreeSvg.style.cursor='grab';}});
       function svgPt(evt,svg,cX,cY,cW,cH){const pt=svg.createSVGPoint();pt.x=evt.clientX;pt.y=evt.clientY;const r=svg.getBoundingClientRect();return{x:(pt.x-r.left)*(cW/r.width)+cX,y:(pt.y-r.top)*(cH/r.height)+cY};}
       function getClientCoords(e){return e.touches?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY};}
-
-      // console.log("--- Initial updateNodeAvailability call ---");
       updateNodeAvailability();
       console.log("SCRIPT: Finalizado.");
     });
